@@ -58,6 +58,8 @@ class MT5Handler:
             "H1": mt5.TIMEFRAME_H1,
             "H4": mt5.TIMEFRAME_H4,
             "D1": mt5.TIMEFRAME_D1,
+            "W1": getattr(mt5, "TIMEFRAME_W1", None),
+            "MN1": getattr(mt5, "TIMEFRAME_MN1", None),
         }
         
         mt5_tf = tf_map.get(timeframe_str)
@@ -251,4 +253,56 @@ class MT5Handler:
             return False, error_msg
             
         logger.info(f"Position {ticket} closed successfully")
+        return True, "Success"
+
+    def modify_position(self, ticket: int, sl: Optional[float], tp: Optional[float], update_sl: bool, update_tp: bool) -> (bool, str):
+        """Adjust stop loss / take profit for an existing position."""
+
+        if not update_sl and not update_tp:
+            return False, "Nothing to update"
+
+        if not self.connected:
+            if not self.initialize():
+                return False, "Failed to connect to MT5"
+
+        positions = mt5.positions_get(ticket=ticket)
+        if positions is None or len(positions) == 0:
+            logger.error(f"Position {ticket} not found")
+            return False, f"Position {ticket} not found"
+
+        pos = positions[0]
+        symbol = pos.symbol
+        action = getattr(mt5, "TRADE_ACTION_SLTP", None)
+        if action is None:
+            logger.error("MT5 does not support TRADE_ACTION_SLTP")
+            return False, "TRADE_ACTION_SLTP not available"
+
+        sl_value = float(pos.sl or 0.0)
+        tp_value = float(pos.tp or 0.0)
+
+        if update_sl:
+            sl_value = 0.0 if sl is None else float(sl)
+
+        if update_tp:
+            tp_value = 0.0 if tp is None else float(tp)
+
+        request = {
+            "action": action,
+            "position": ticket,
+            "symbol": symbol,
+            "sl": sl_value,
+            "tp": tp_value,
+        }
+
+        result = mt5.order_send(request)
+        if result is None:
+            logger.error("Modify position failed: result is None")
+            return False, "order_send returned None"
+
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            error_msg = f"{result.comment} ({result.retcode})"
+            logger.error(f"Modify position failed: {error_msg}")
+            return False, error_msg
+
+        logger.info(f"Protection updated for ticket {ticket}")
         return True, "Success"

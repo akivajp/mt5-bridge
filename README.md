@@ -47,7 +47,7 @@ python -m uvicorn mt5_bridge.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### GET `/rates/{symbol}`
-- クエリ: `timeframe` (例: `M1`, `H1`), `count` (取得バー数、既定1000)。
+- クエリ: `timeframe` (例: `M1`, `H1`, `W1`, `MN1`), `count` (取得バー数、既定1000)。
 - 説明: 指定シンボルの最新バーをMT5から取得し、時刻昇順に返却。
 - レスポンスの各要素: `time`, `open`, `high`, `low`, `close`, `tick_volume`, `spread`, `real_volume`。
 
@@ -81,6 +81,19 @@ python -m uvicorn mt5_bridge.main:app --host 0.0.0.0 --port 8000
 }
 ```
 - 説明: 指定チケットのポジションを反対売買で決済。成功時 `{ "status": "ok" }`。
+
+### POST `/modify`
+- リクエストボディ:
+```json
+{
+  "ticket": 12345678,
+  "sl": 1.095,
+  "tp": 1.115,
+  "update_sl": true,
+  "update_tp": false
+}
+```
+- 説明: 既存ポジションのストップロス／テイクプロフィットを更新。`update_*` が `true` のフィールドのみ書き換え、`sl`/`tp` を省略または `null` にすると該当レベルをクリア。成功時 `{ "status": "ok" }`。
 
 ## 設定・拡張のヒント
 - 接続先ポート/ホストはサーバー起動引数で変更できます。外部クライアント（例: Linux上の`trading_brain`）から到達できるよう、Windowsファイアウォールで該当ポートを許可してください。

@@ -93,6 +93,13 @@ class OrderRequest(BaseModel):
 class CloseRequest(BaseModel):
     ticket: int
 
+class ModifyRequest(BaseModel):
+    ticket: int
+    sl: Optional[float] = None
+    tp: Optional[float] = None
+    update_sl: bool = False
+    update_tp: bool = False
+
 @app.post("/order")
 def send_order(order: OrderRequest):
     ticket = mt5_handler.send_order(
@@ -112,6 +119,19 @@ def close_position(req: CloseRequest):
     success, message = mt5_handler.close_position(req.ticket)
     if not success:
         raise HTTPException(status_code=500, detail=f"Failed to close position: {message}")
+    return {"status": "ok"}
+
+@app.post("/modify")
+def modify_position(req: ModifyRequest):
+    success, message = mt5_handler.modify_position(
+        req.ticket,
+        req.sl,
+        req.tp,
+        req.update_sl,
+        req.update_tp,
+    )
+    if not success:
+        raise HTTPException(status_code=500, detail=f"Failed to modify position: {message}")
     return {"status": "ok"}
 
 if __name__ == "__main__":
