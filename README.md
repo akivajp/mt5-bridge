@@ -100,5 +100,13 @@ python -m uvicorn mt5_bridge.main:app --host 0.0.0.0 --port 8000
 - エンドポイントを追加する際は`mt5_handler`に必ず薄いラッパーを用意し、FastAPI層から直接MetaTrader5 APIを呼び出さない方針にすると、将来的なサブモジュール化・単体利用が容易になります。
 - API仕様を変更した場合は、本READMEのエンドポイント定義を更新し、依存リポジトリにも周知してください。
 
+## サポート・寄付
+- <a href="https://github.com/sponsors/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Sponsors" height="32" /></a> GitHub Sponsors: [https://github.com/sponsors/akivajp](https://github.com/sponsors/akivajp)
+- <a href="https://buymeacoffee.com/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/buy_me_a_coffee-63ed78263f6e.svg" alt="Buy Me a Coffee" height="32" /></a>
+Buy Me a Coffee: [https://buymeacoffee.com/akivajp](https://buymeacoffee.com/akivajp)
+
+上記以外の支援方法を希望される場合は Issue や Discussions でご相談ください。
+少額の寄付・サポートはいつでも大歓迎です。お気持ちだけでも大きな励みになります。
+
 ## ライセンス
 本プロジェクトは MIT License の下で提供されます。詳細は `LICENSE` を参照してください。
