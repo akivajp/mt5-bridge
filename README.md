@@ -13,10 +13,10 @@
 3. Python 3.9+ is recommended.
 
 ## Dependencies
-Only the packages strictly required by the bridge are listed in `mt5_bridge/requirements.txt`.
+Only the packages strictly required by the bridge are listed in `requirements.txt`.
 
 ```bash
-pip install -r mt5_bridge/requirements.txt
+pip install -r requirements.txt
 ```
 
 Key packages:

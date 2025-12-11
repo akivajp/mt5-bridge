@@ -13,10 +13,10 @@
 3. Python 3.9+ を推奨。
 
 ## 依存パッケージ
-`mt5_bridge/requirements.txt`に、ブリッジ単体で必要なパッケージのみを列挙しています。
+`requirements.txt`に、ブリッジ単体で必要なパッケージのみを列挙しています。
 
 ```bash
-pip install -r mt5_bridge/requirements.txt
+pip install -r requirements.txt
 ```
 
 主な依存:
