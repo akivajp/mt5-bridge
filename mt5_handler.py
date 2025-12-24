@@ -180,7 +180,7 @@ class MT5Handler:
         mt5_type = mt5.ORDER_TYPE_BUY if order_type == "BUY" else mt5.ORDER_TYPE_SELL
         price = tick['ask'] if order_type == "BUY" else tick['bid']
         
-        request = {
+        base_request = {
             "action": action,
             "symbol": symbol,
             "volume": volume,
@@ -188,27 +188,31 @@ class MT5Handler:
             "price": price,
             "sl": sl,
             "tp": tp,
-            "deviation": 20, # Slippage tolerance
-            "magic": 123456, # Magic number
+            "deviation": 20,  # Slippage tolerance
+            "magic": 123456,  # Magic number
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
         }
-        
-        result = mt5.order_send(request)
-        
-        if result is None:
-            message = "order_send の戻り値が None でした"
-            logger.error(message)
-            return None, message
-
-        if result.retcode != mt5.TRADE_RETCODE_DONE:
-            message = f"{result.retcode} で失敗: {result.comment}"
-            logger.error(f"Order send failed: {message}")
-            return None, message
-            
-        logger.info(f"Order sent successfully: {result.order}")
-        return result.order, None
+        fillings = [
+            mt5.ORDER_FILLING_IOC,
+            mt5.ORDER_FILLING_FOK,
+            mt5.ORDER_FILLING_RETURN,
+        ]
+        last_error: Optional[str] = None
+        for filling in fillings:
+            request = {**base_request, "type_filling": filling}
+            result = mt5.order_send(request)
+            if result is None:
+                last_error = f"order_send returned None with filling={filling}"
+                logger.error(last_error)
+                continue
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"Order sent successfully: {result.order} (filling={filling})")
+                return result.order, None
+            last_error = f"filling={filling} {result.retcode} で失敗: {result.comment}"
+            logger.warning("Order send failed: %s", last_error)
+        message = last_error or "すべての filling モードで発注に失敗しました"
+        return None, message
 
     def close_position(self, ticket: int) -> (bool, str):
         """
