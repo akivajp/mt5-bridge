@@ -193,28 +193,46 @@ class MT5Handler:
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
         }
+
+        # filling の切り替えは「filling 起因の失敗」のときだけ行う。
+        # 例: Invalid stops(10016) は filling を変えても解決しないので、総当たりしない。
+        invalid_fill_retcode = getattr(mt5, "TRADE_RETCODE_INVALID_FILL", 10030)
+
+        # まずはデフォルト（type_filling未指定）を試し、
+        # 「Unsupported filling mode / Invalid filling」等の場合のみ filling を変えて再試行する。
         fillings = [
+            None,
             mt5.ORDER_FILLING_IOC,
             mt5.ORDER_FILLING_FOK,
             mt5.ORDER_FILLING_RETURN,
         ]
         last_error: Optional[str] = None
         for filling in fillings:
-            request = {**base_request, "type_filling": filling}
+            request = dict(base_request)
+            if filling is not None:
+                request["type_filling"] = filling
+            filling_label = "default" if filling is None else str(filling)
             result = mt5.order_send(request)
             if result is None:
-                last_error = f"order_send returned None with filling={filling}"
+                # result=None は通信/端末側の問題の可能性が高く、filling を変えても改善しないことが多い
+                last_error = f"order_send returned None with filling={filling_label}"
                 logger.error(last_error)
-                continue
+                break
             if result.retcode == mt5.TRADE_RETCODE_DONE:
-                logger.info(f"Order sent successfully: {result.order} (filling={filling})")
+                logger.info(f"Order sent successfully: {result.order} (filling={filling_label})")
                 return result.order, None
-            last_error = f"filling={filling} {result.retcode} で失敗: {result.comment}"
+            last_error = f"filling={filling_label} {result.retcode} で失敗: {result.comment}"
             logger.warning("Order send failed: %s", last_error)
+
+            # filling 起因の失敗（Unsupported/Invalid filling）のときだけ次の filling を試す。
+            # それ以外（例: Invalid stops）は即座に中断して返す。
+            if int(result.retcode) == int(invalid_fill_retcode) or "filling" in str(result.comment).lower():
+                continue
+            break
         message = last_error or "すべての filling モードで発注に失敗しました"
         return None, message
 
-    def close_position(self, ticket: int) -> (bool, str):
+    def close_position(self, ticket: int) -> tuple[bool, str]:
         """
         Close an existing position.
         Returns: (success, message)
@@ -256,6 +274,9 @@ class MT5Handler:
             "type_time": mt5.ORDER_TIME_GTC,
         }
 
+        # filling の切り替えは「filling 起因の失敗」のときだけ行う。
+        invalid_fill_retcode = getattr(mt5, "TRADE_RETCODE_INVALID_FILL", 10030)
+
         fillings = [
             None,
             mt5.ORDER_FILLING_IOC,
@@ -272,17 +293,23 @@ class MT5Handler:
             if result is None:
                 last_error = f"order_send returned None with filling={filling_label}"
                 logger.error(last_error)
-                continue
+                break
             if result.retcode == mt5.TRADE_RETCODE_DONE:
                 logger.info("Position %s closed successfully (filling=%s)", ticket, filling_label)
                 return True, "Success"
             last_error = f"filling={filling_label} {result.retcode} で失敗: {result.comment}"
             logger.warning("Close position failed: %s", last_error)
 
+            # filling 起因の失敗（Unsupported/Invalid filling）のときだけ次の filling を試す。
+            # それ以外（例: Invalid stops）は即座に中断して返す。
+            if int(result.retcode) == int(invalid_fill_retcode) or "filling" in str(result.comment).lower():
+                continue
+            break
+
         message = last_error or "Close position failed"
         return False, message
 
-    def modify_position(self, ticket: int, sl: Optional[float], tp: Optional[float], update_sl: bool, update_tp: bool) -> (bool, str):
+    def modify_position(self, ticket: int, sl: Optional[float], tp: Optional[float], update_sl: bool, update_tp: bool) -> tuple[bool, str]:
         """Adjust stop loss / take profit for an existing position."""
 
         if not update_sl and not update_tp:
