@@ -132,6 +132,9 @@ class MT5Handler:
                 "type": "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL",
                 "volume": float(pos.volume),
                 "price_open": float(pos.price_open),
+                # deep-trader 側で「自分のポジだけ」を安全に識別するために必要
+                "comment": str(getattr(pos, "comment", "")),
+                "magic": int(getattr(pos, "magic", 0)),
                 "sl": float(pos.sl),
                 "tp": float(pos.tp),
                 "price_current": float(pos.price_current),

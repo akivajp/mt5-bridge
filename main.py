@@ -39,6 +39,8 @@ class Position(BaseModel):
     type: str
     volume: float
     price_open: float
+    comment: str
+    magic: int
     sl: float
     tp: float
     price_current: float
