@@ -94,6 +94,7 @@ class OrderRequest(BaseModel):
     sl: float = 0.0
     tp: float = 0.0
     comment: str = ""
+    magic: int = 123456
 
 class CloseRequest(BaseModel):
     ticket: int
@@ -113,7 +114,8 @@ def send_order(order: OrderRequest):
         order.volume, 
         order.sl, 
         order.tp, 
-        order.comment
+        order.comment,
+        magic=order.magic
     )
     if ticket is None:
         detail = error or "Failed to send order"

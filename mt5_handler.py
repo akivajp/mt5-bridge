@@ -152,6 +152,7 @@ class MT5Handler:
         sl: float = 0.0,
         tp: float = 0.0,
         comment: str = "",
+        magic: int = 123456,
     ) -> tuple[Optional[int], Optional[str]]:
         """
         Send a market order.
@@ -192,7 +193,7 @@ class MT5Handler:
             "sl": sl,
             "tp": tp,
             "deviation": 20,  # Slippage tolerance
-            "magic": 123456,  # Magic number
+            "magic": magic,   # Magic number
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
         }
@@ -219,7 +220,7 @@ class MT5Handler:
             if result is None:
                 # result=None は通信/端末側の問題の可能性が高く、filling を変えても改善しないことが多い
                 error_code = mt5.last_error()
-                last_error = f"order_send returned None with filling={filling_label} (error={error_code})"
+                last_error = f"order_send returned None with filling={filling_label} (error={error_code}). Request: {request}"
                 logger.error(last_error)
                 break
             if result.retcode == mt5.TRADE_RETCODE_DONE:
