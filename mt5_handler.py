@@ -218,7 +218,8 @@ class MT5Handler:
             result = mt5.order_send(request)
             if result is None:
                 # result=None は通信/端末側の問題の可能性が高く、filling を変えても改善しないことが多い
-                last_error = f"order_send returned None with filling={filling_label}"
+                error_code = mt5.last_error()
+                last_error = f"order_send returned None with filling={filling_label} (error={error_code})"
                 logger.error(last_error)
                 break
             if result.retcode == mt5.TRADE_RETCODE_DONE:
@@ -294,9 +295,10 @@ class MT5Handler:
             filling_label = "default" if filling is None else str(filling)
             result = mt5.order_send(request)
             if result is None:
-                last_error = f"order_send returned None with filling={filling_label}"
+                error_code = mt5.last_error()
+                last_error = f"order_send returned None with filling={filling_label} (error={error_code})"
                 logger.error(last_error)
-                break
+                continue
             if result.retcode == mt5.TRADE_RETCODE_DONE:
                 logger.info("Position %s closed successfully (filling=%s)", ticket, filling_label)
                 return True, "Success"
