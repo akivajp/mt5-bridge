@@ -9,19 +9,60 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class MT5Handler:
-    def __init__(self):
+    def __init__(
+        self,
+        program_path: Optional[str] = None,
+        login: Optional[int] = None,
+        password: Optional[str] = None,
+        server: Optional[str] = None
+    ):
         self.connected = False
+        self.program_path = program_path
+        self.login = login
+        self.password = password
+        self.server = server
 
     def initialize(self) -> bool:
         """
         Initialize connection to MetaTrader 5 terminal.
         """
-        if not mt5.initialize():
+        # If path is specified, use it
+        init_args = {}
+        if self.program_path:
+            init_args["path"] = self.program_path
+            
+        if not mt5.initialize(**init_args):
             logger.error("initialize() failed, error code = %s", mt5.last_error())
             self.connected = False
             return False
-        
+            
+        # If login credentials are provided, try to login
+        if self.login and self.password and self.server:
+            authorized = mt5.login(
+                login=self.login,
+                password=self.password,
+                server=self.server
+            )
+            if not authorized:
+                logger.error("failed to connect at account #%d, error code: %s", self.login, mt5.last_error())
+                self.connected = False
+                return False
+            logger.info("MT5 login successful")
+
         logger.info("MT5 initialized successfully")
+        self.connected = True
+        return True
+
+    def check_connection(self) -> bool:
+        """
+        Check if connection is still alive using terminal_info.
+        Attempt to reconnect if lost.
+        """
+        if not mt5.terminal_info():
+            self.connected = False
+            logger.warning("Connection lost. Attempting to reconnect...")
+            return self.initialize()
+        
         self.connected = True
         return True
 

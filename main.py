@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
+import asyncio
 import argparse
 import os
 import sys
@@ -47,11 +48,25 @@ class Position(BaseModel):
     profit: float
     time: int
 
+async def monitor_connection():
+    """Periodically check MT5 connection and reconnect if needed."""
+    while True:
+        try:
+            if not mt5_handler.check_connection():
+                print("WARNING: MT5 connection lost. Reconnecting...")
+            await asyncio.sleep(5)  # Check every 5 seconds
+        except Exception as e:
+            print(f"Error in connection monitor: {e}")
+            await asyncio.sleep(5)
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize MT5 connection on startup."""
     if not mt5_handler.initialize():
-        print("WARNING: Failed to initialize MT5 on startup. Will retry on first request.")
+        print("WARNING: Failed to initialize MT5 on startup. Will retry in background.")
+    
+    # Start connection monitor
+    asyncio.create_task(monitor_connection())
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -155,7 +170,38 @@ if __name__ == "__main__":
         default=8000,
         help="Port to listen on (default: 8000)",
     )
+    parser.add_argument(
+        "--mt5-path",
+        default=None,
+        help="Path to MT5 terminal executable",
+    )
+    parser.add_argument(
+        "--mt5-login",
+        type=int,
+        default=None,
+        help="MT5 login account number",
+    )
+    parser.add_argument(
+        "--mt5-password",
+        default=None,
+        help="MT5 account password",
+    )
+    parser.add_argument(
+        "--mt5-server",
+        default=None,
+        help="MT5 server name",
+    )
     args = parser.parse_args()
+
+    # Configure MT5 handler with CLI args
+    if args.mt5_path:
+        mt5_handler.program_path = args.mt5_path
+    if args.mt5_login:
+        mt5_handler.login = args.mt5_login
+    if args.mt5_password:
+        mt5_handler.password = args.mt5_password
+    if args.mt5_server:
+        mt5_handler.server = args.mt5_server
 
     # Parse CLI args for server host/port / サーバーのホストとポートをCLI引数から取得
     uvicorn.run(app, host=args.host, port=args.port)
