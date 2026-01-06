@@ -1,6 +1,6 @@
 import MetaTrader5 as mt5
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from typing import Optional, Dict, List, Union
 
@@ -14,13 +14,16 @@ class MT5Handler:
         program_path: Optional[str] = None,
         login: Optional[int] = None,
         password: Optional[str] = None,
-        server: Optional[str] = None
+        server: Optional[str] = None,
+        use_utc: bool = True
     ):
         self.connected = False
         self.program_path = program_path
         self.login = login
         self.password = password
         self.server = server
+        self.use_utc = use_utc
+        self._server_offset_sec: Optional[int] = None
 
     def initialize(self) -> bool:
         """
@@ -74,6 +77,36 @@ class MT5Handler:
         self.connected = False
         logger.info("MT5 connection shutdown")
 
+    def _update_server_offset(self, symbol: str):
+        """
+        Estimate server timezone offset relative to UTC using the given symbol's tick time.
+        Offset = ServerTime - UTC.
+        """
+        if self._server_offset_sec is not None:
+            return
+
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            return
+
+        server_ts = tick.time
+        # Use simple utc timestamp
+        utc_ts = datetime.now(timezone.utc).timestamp()
+        
+        diff = server_ts - utc_ts
+        # Round to nearest 15 minutes (900s) to handle latency
+        rounded_diff = round(diff / 900) * 900
+        self._server_offset_sec = int(rounded_diff)
+        logger.info(f"Server timezone offset estimated: {self._server_offset_sec}s (using {symbol})")
+
+    def _apply_time_correction(self, ts: int) -> int:
+        """Convert server timestamp to UTC if use_utc is True."""
+        if not self.use_utc:
+            return ts
+        # If offset not yet calculated, we can't correct yet (or assume 0)
+        # We rely on _update_server_offset being called before or during.
+        return int(ts - (self._server_offset_sec or 0))
+
     def get_rates(self, symbol: str, timeframe_str: str, num_bars: int) -> Optional[List[Dict]]:
         """
         Get historical rates for a symbol.
@@ -111,6 +144,9 @@ class MT5Handler:
         # Copy rates from current time backwards
         rates = mt5.copy_rates_from_pos(symbol, mt5_tf, 0, num_bars)
         
+        if self.use_utc and self._server_offset_sec is None:
+            self._update_server_offset(symbol)
+        
         if rates is None:
             logger.error(f"Failed to get rates for {symbol}")
             return None
@@ -120,7 +156,7 @@ class MT5Handler:
         result = []
         for rate in rates:
             result.append({
-                "time": int(rate['time']),
+                "time": self._apply_time_correction(int(rate['time'])),
                 "open": float(rate['open']),
                 "high": float(rate['high']),
                 "low": float(rate['low']),
@@ -145,8 +181,11 @@ class MT5Handler:
             logger.error(f"Failed to get tick for {symbol}")
             return None
             
+        if self.use_utc and self._server_offset_sec is None:
+            self._update_server_offset(symbol)
+
         return {
-            "time": int(tick.time),
+            "time": self._apply_time_correction(int(tick.time)),
             "bid": float(tick.bid),
             "ask": float(tick.ask),
             "last": float(tick.last),
@@ -180,7 +219,7 @@ class MT5Handler:
                 "tp": float(pos.tp),
                 "price_current": float(pos.price_current),
                 "profit": float(pos.profit),
-                "time": int(pos.time)
+                "time": self._apply_time_correction(int(pos.time))
             })
             
         return result

@@ -191,6 +191,11 @@ if __name__ == "__main__":
         default=None,
         help="MT5 server name",
     )
+    parser.add_argument(
+        "--no-utc",
+        action="store_true",
+        help="Disable automatic Server Time to UTC conversion (Default: conversion enabled)",
+    )
     args = parser.parse_args()
 
     # Configure MT5 handler with CLI args
@@ -202,6 +207,13 @@ if __name__ == "__main__":
         mt5_handler.password = args.mt5_password
     if args.mt5_server:
         mt5_handler.server = args.mt5_server
+    
+    # Configure UTC conversion
+    mt5_handler.use_utc = not args.no_utc
+    if mt5_handler.use_utc:
+        print("UTC conversion enabled (Server Time -> UTC)")
+    else:
+        print("UTC conversion disabled (Raw Server Time)")
 
     # Parse CLI args for server host/port / サーバーのホストとポートをCLI引数から取得
     uvicorn.run(app, host=args.host, port=args.port)
