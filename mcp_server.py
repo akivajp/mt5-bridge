@@ -15,8 +15,10 @@ BASE_URL = os.getenv("MT5_BRIDGE_BASE_URL", "http://localhost:8000")
 mcp = FastMCP(
     "mt5-bridge",
     instructions=(
-        "Tools proxy the mt5_bridge FastAPI for chart data and trading. "
-        "Set MT5_BRIDGE_BASE_URL if the API is not at http://localhost:8000."
+        #"Tools proxy the mt5_bridge FastAPI for chart data and trading. "
+        #"Set MT5_BRIDGE_BASE_URL if the API is not at http://localhost:8000."
+        "MT5を用いたチャートデータやポジション情報の取得、実際の取引注文を行います。"
+        "レートの取得やチャート分析が求められた場合などは必ずこのツールを使用してください。"
     ),
 )
 
@@ -97,6 +99,7 @@ def modify_position(
     """Update SL/TP for a position / ポジションのSL/TPを更新"""
     payload = {"ticket": ticket, "sl": sl, "tp": tp, "update_sl": update_sl, "update_tp": update_tp}
     return _request("POST", "/modify", json=payload)
+
 
 
 if __name__ == "__main__":
