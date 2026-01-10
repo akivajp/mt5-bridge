@@ -7,7 +7,7 @@
 - **Client**: Runs on any platform (Windows, Linux, macOS) and communicates with the Server to fetch data or execute trades.
 
 ## Prerequisites
-- Python 3.9+
+- Python 3.11+
 - **Server Mode**: Windows environment with MetaTrader 5 terminal installed.
 - **Client Mode**: Any OS.
 
