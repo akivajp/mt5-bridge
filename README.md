@@ -11,7 +11,19 @@
 - **Server Mode**: Windows environment with MetaTrader 5 terminal installed.
 - **Client Mode**: Any OS.
 
-## Installation (uv)
+## Installation
+
+### From PyPI (Recommended)
+
+You can install `mt5-bridge` directly from PyPI:
+
+```bash
+pip install mt5-bridge
+```
+
+Once installed, you can run the `mt5-bridge` command directly.
+
+### From Source (Development)
 
 This project uses [uv](https://github.com/astral-sh/uv) for package management.
 
