@@ -1,4 +1,4 @@
-# mt5_bridge専用依存パッケージ
+# mt5-bridge専用依存パッケージ
 MetaTrader5; sys_platform == 'win32'
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0

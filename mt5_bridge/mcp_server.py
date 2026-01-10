@@ -15,7 +15,7 @@ BASE_URL = os.getenv("MT5_BRIDGE_BASE_URL", "http://localhost:8000")
 mcp = FastMCP(
     "mt5-bridge",
     instructions=(
-        #"Tools proxy the mt5_bridge FastAPI for chart data and trading. "
+        #"Tools proxy the mt5-bridge FastAPI for chart data and trading. "
         #"Set MT5_BRIDGE_BASE_URL if the API is not at http://localhost:8000."
         "MT5を用いたチャートデータやポジション情報の取得、実際の取引注文を行います。"
         "レートの取得やチャート分析が求められた場合などは必ずこのツールを使用してください。"

@@ -1,7 +1,7 @@
 # MT5 Bridge API
 
 ## 概要
-`mt5_bridge`はMetaTrader 5ターミナルと外部アプリケーションの間で市場データの取得や注文実行を仲介するためのFastAPIサービス兼CLIツールです。
+`mt5-bridge`はMetaTrader 5ターミナルと外部アプリケーションの間で市場データの取得や注文実行を仲介するためのFastAPIサービス兼CLIツールです。
 
 - **サーバー機能**: MetaTrader 5がインストールされたWindows環境で動作し、REST API機能を提供します。
 - **クライアント機能**: Windows、Linux、macOSなど任意のOSで動作し、サーバーと通信してデータの取得や注文を行います。
@@ -38,7 +38,7 @@ uv run mt5-bridge server
 uv run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
-> **注意**: WSL上のディレクトリ（`\\wsl.localhost\...`）にあるソースコードをWindows側のPythonで直接実行すると、NumPyなどのライブラリ読み込み時（DLLロード）にエラーが発生する場合があります。サーバー機能を利用する際は、必ず**Windows側のローカルフォルダ**（例: `C:\Work\mt5_bridge`）にリポジトリを配置して実行してください。
+> **注意**: WSL上のディレクトリ（`\\wsl.localhost\...`）にあるソースコードをWindows側のPythonで直接実行すると、NumPyなどのライブラリ読み込み時（DLLロード）にエラーが発生する場合があります。サーバー機能を利用する際は、必ず**Windows側のローカルフォルダ**（例: `C:\Work\mt5-bridge`）にリポジトリを配置して実行してください。
 
 
 主なオプション:

@@ -1,7 +1,7 @@
 # MT5 Bridge API
 
 ## Overview
-`mt5_bridge` is a FastAPI service and CLI tool that mediates market data access and order execution between a MetaTrader 5 terminal and external applications. 
+`mt5-bridge` is a FastAPI service and CLI tool that mediates market data access and order execution between a MetaTrader 5 terminal and external applications. 
 
 - **Server**: Runs on Windows (where MT5 is installed) and exposes a REST API.
 - **Client**: Runs on any platform (Windows, Linux, macOS) and communicates with the Server to fetch data or execute trades.
@@ -38,7 +38,7 @@ uv run mt5-bridge server
 uv run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
-> **Note**: If you are using WSL, please checkout this repository on the **Windows file system** (e.g., `C:\Work\mt5_bridge`) and run the command from PowerShell/Command Prompt. Running Windows Python directly against a directory inside WSL (UNC path like `\\wsl.localhost\Ubuntu\...`) often causes `DLL load failed` errors with libraries like NumPy.
+> **Note**: If you are using WSL, please checkout this repository on the **Windows file system** (e.g., `C:\Work\mt5-bridge`) and run the command from PowerShell/Command Prompt. Running Windows Python directly against a directory inside WSL (UNC path like `\\wsl.localhost\Ubuntu\...`) often causes `DLL load failed` errors with libraries like NumPy.
 
 
 Additional options:
