@@ -1,126 +1,86 @@
 # MT5 Bridge API
 
 ## Overview
-`mt5_bridge` is a FastAPI service that mediates HTTP-based market data access and order execution between a MetaTrader 5 terminal and external applications. Run it on the same Windows environment as MetaTrader 5, and call the REST endpoints from your research or inference pipeline (for example, `trading_brain`) to reuse data retrieval and trade submission logic.
+`mt5_bridge` is a FastAPI service and CLI tool that mediates market data access and order execution between a MetaTrader 5 terminal and external applications. 
 
-## Architecture
-- `mt5_bridge/main.py`: FastAPI entry point that bootstraps the server and defines endpoints.
-- `mt5_bridge/mt5_handler.py`: Wrapper around the official MetaTrader5 Python package that encapsulates connection setup, data retrieval, order placement, and position management.
+- **Server**: Runs on Windows (where MT5 is installed) and exposes a REST API.
+- **Client**: Runs on any platform (Windows, Linux, macOS) and communicates with the Server to fetch data or execute trades.
 
 ## Prerequisites
-1. A MetaTrader 5 terminal installed and logged in to the target broker account.
-2. Windows environment (the official MetaTrader5 Python package is Windows-only).
-3. Python 3.9+ is recommended.
+- Python 3.9+
+- **Server Mode**: Windows environment with MetaTrader 5 terminal installed.
+- **Client Mode**: Any OS.
 
-## Dependencies
-Only the packages strictly required by the bridge are listed in `requirements.txt`.
+## Installation (Poetry)
 
-```bash
-pip install -r requirements.txt
-```
-
-Key packages:
-- `MetaTrader5` (Windows only)
-- `fastapi`
-- `uvicorn[standard]`
-- `pydantic`
-
-## Getting Started
-1. Launch your MetaTrader 5 terminal and ensure it is connected to the intended account.
-2. Install the dependencies in your Windows Python environment.
-3. From the repository root (or inside `mt5_bridge/`), run:
+This project uses [Poetry](https://python-poetry.org/) for package management.
 
 ```bash
-python -m uvicorn mt5_bridge.main:app --host 0.0.0.0 --port 8000
+# Install dependencies
+poetry install
 ```
 
-You can also start the server by calling `uvicorn.run` at the bottom of `main.py`.
+On Linux/macOS, the `MetaTrader5` package will be skipped automatically, allowing you to use the client functionality without issues.
 
-When invoking `main.py` directly, use the CLI flags to adjust host/port (defaults: `0.0.0.0:8000`).
+## Usage
+
+The package installs a CLI command `mt5-bridge`.
+
+### 1. Start the Server (Windows Only)
+
+On your Windows machine with MT5:
 
 ```powershell
-python mt5_bridge/main.py --host 0.0.0.0 --port 9000
+# Default (localhost:8000)
+poetry run mt5-bridge server
+
+# Custom host/port
+poetry run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
-## API Reference
-All endpoints return JSON. On errors the service responds with HTTP 500 and a payload containing `detail`.
+Additional options:
+- `--mt5-path "C:\Path\To\terminal64.exe"`: proper initialization
+- `--no-utc`: Disable Server Time -> UTC conversion
 
-### GET `/health`
-- Purpose: Check MT5 connection status.
-- Example response:
-```json
-{"status": "ok", "mt5_connected": true}
+### 2. Use the Client (Any Platform)
+
+From another machine (or the same one), use the client command to interact with the server.
+
+```bash
+# Check connection health
+poetry run mt5-bridge client --url http://192.168.1.10:8000 health
+
+# Get historical rates (M1, last 1000 bars) for XAUUSD
+poetry run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
+
+# Get latest tick
+poetry run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
+
+# List open positions
+poetry run mt5-bridge client --url http://192.168.1.10:8000 positions
 ```
 
-### GET `/rates/{symbol}`
-- Query parameters: `timeframe` (for example `M1`, `H1`, `W1`, `MN1`), `count` (number of bars, default 1000).
-- Description: Fetch the latest bars for the specified symbol from MT5 and return them in ascending timestamp order.
-- Fields per bar: `time`, `open`, `high`, `low`, `close`, `tick_volume`, `spread`, `real_volume`.
+### JSON API
 
-### GET `/tick/{symbol}`
-- Description: Retrieve the current tick information.
-- Response fields: `time`, `bid`, `ask`, `last`, `volume`.
+You can also access the API directly via generic HTTP clients (curl, Postman, specific libraries).
 
-### GET `/positions`
-- Description: List all open positions in the account.
-- Fields per position: `ticket`, `symbol`, `type` (`BUY`/`SELL`), `volume`, `price_open`, `sl`, `tp`, `price_current`, `profit`, `time`.
+- `GET /health`
+- `GET /rates/{symbol}?timeframe=M1&count=1000`
+- `GET /tick/{symbol}`
+- `GET /positions`
+- `POST /order`
+- `POST /close`
+- `POST /modify`
 
-### POST `/order`
-- Request body:
-```json
-{
-  "symbol": "XAUUSD",
-  "type": "BUY",
-  "volume": 0.01,
-  "sl": 0.0,
-  "tp": 0.0,
-  "comment": "Optional text"
-}
-```
-- Description: Submit a market order. Returns `{ "status": "ok", "ticket": <id> }` on success.
-
-### POST `/close`
-- Request body:
-```json
-{
-  "ticket": 12345678
-}
-```
-- Description: Close the specified ticket via the opposite side. Returns `{ "status": "ok" }` on success.
-
-### POST `/modify`
-- Request body:
-```json
-{
-  "ticket": 12345678,
-  "sl": 1.095,
-  "tp": 1.115,
-  "update_sl": true,
-  "update_tp": false
-}
-```
-- Description: Update stop-loss and/or take-profit levels for an existing position. Only the fields with `update_* = true` are changed. Omitting `sl`/`tp` or passing `null` clears the respective level. Returns `{ "status": "ok" }` on success.
-
-## Configuration and Extension Tips
-- Customize the host/port via Uvicorn arguments. Make sure the Windows firewall allows inbound traffic so external clients (for example, `trading_brain` on Linux) can reach the server.
-- When adding new endpoints, keep the abstraction layer in `mt5_handler` and avoid calling the MetaTrader5 API directly from the FastAPI layer. This keeps the codebase modular and easier to reuse.
-- If you change the API surface, update this README and notify downstream consumers.
+## Architecture
+- `mt5_bridge/main.py`: CLI entry point and FastAPI server definition.
+- `mt5_bridge/mt5_handler.py`: Wrapper for MetaTrader5 package (guarded imports).
+- `mt5_bridge/client.py`: HTTP client implementation.
 
 ## MCP (Copilot CLI) Integration
-- Purpose: expose the MT5 Bridge API to Copilot CLI (MCP). Default transport is stdio; use `--http` to run an HTTP listener.
-- Requirements: `pip install -r requirements.txt` (includes `fastmcp` and `httpx`).
-- Env: optional `MT5_BRIDGE_BASE_URL` (default `http://localhost:8000`).
-- Run MCP server (stdio, default):
-  - `python mcp_server.py --api-base http://localhost:8000`
-- Run MCP server over HTTP (host `0.0.0.0`, port `8001` by default):
-  - `python mcp_server.py --http --api-base http://localhost:8000 --host 0.0.0.0 --port 8001`
-- Copilot CLI: add as stdio or HTTP source accordingly (e.g., `copilot mcp add http http://localhost:8001`). Tool names mirror the HTTP endpoints: `get_rates`, `get_tick`, `list_positions`, `send_order`, `close_position`, `modify_position`, `health`.
-
-## Support and Donations
-- <a href="https://github.com/sponsors/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Sponsors" height="32" /></a> GitHub Sponsors: [https://github.com/sponsors/akivajp](https://github.com/sponsors/akivajp)
-- <a href="https://buymeacoffee.com/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/buy_me_a_coffee-63ed78263f6e.svg" alt="Buy Me a Coffee" height="32" /></a> Buy Me a Coffee: [https://buymeacoffee.com/akivajp](https://buymeacoffee.com/akivajp)
-
-If you prefer another support option, open an Issue or Discussion. Even small contributions are greatly appreciated.
+- Purpose: expose the MT5 Bridge API to Copilot CLI (MCP).
+- Run MCP server:
+  - `python mt5_bridge/mcp_server.py --api-base http://localhost:8000`
 
 ## License
-This project is licensed under the MIT License. See `LICENSE` for details.
+MIT License.

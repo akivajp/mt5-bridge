@@ -1,125 +1,90 @@
 # MT5 Bridge API
 
 ## 概要
-`mt5_bridge`はMetaTrader 5ターミナルと外部アプリケーションの間でHTTP経由のデータ取得および注文実行を仲介するFastAPIサービスです。MetaTrader 5が稼働するWindows環境上で本APIを立ち上げ、学習・推論パイプライン（例: `trading_brain`）からはRESTエンドポイントを呼び出すだけで価格データ取得や注文送信を再利用できます。
+`mt5_bridge`はMetaTrader 5ターミナルと外部アプリケーションの間で市場データの取得や注文実行を仲介するためのFastAPIサービス兼CLIツールです。
 
-## 構成
-- `mt5_bridge/main.py`: FastAPIエントリポイント。サーバー起動とエンドポイント定義を担当。
-- `mt5_bridge/mt5_handler.py`: MetaTrader5公式Pythonパッケージを使って端末と通信するラッパー。接続初期化、価格取得、注文、決済をカプセル化。
+- **サーバー機能**: MetaTrader 5がインストールされたWindows環境で動作し、REST API機能を提供します。
+- **クライアント機能**: Windows、Linux、macOSなど任意のOSで動作し、サーバーと通信してデータの取得や注文を行います。
 
 ## 前提条件
-1. MetaTrader 5ターミナルがインストールされ、対象ブローカー口座にログイン済みであること。
-2. 本サービスはWindows上でのみ稼働可能です（MetaTrader5公式PythonがWindows限定のため）。
-3. Python 3.9+ を推奨。
+- Python 3.9以上
+- **サーバーモード**: MetaTrader 5ターミナルがインストールされたWindows環境。
+- **クライアントモード**: 任意のOS環境。
 
-## 依存パッケージ
-`requirements.txt`に、ブリッジ単体で必要なパッケージのみを列挙しています。
+## インストール (Poetry)
 
-```bash
-pip install -r requirements.txt
-```
-
-主な依存:
-- `MetaTrader5` (Windows限定)
-- `fastapi`
-- `uvicorn[standard]`
-- `pydantic`
-
-## 起動方法
-1. MetaTrader 5ターミナルを起動し、対象口座に接続された状態にします。
-2. WindowsのPython環境で依存パッケージをインストールします。
-3. リポジトリルートまたは`mt5_bridge/`ディレクトリ内で以下を実行します。
+本プロジェクトはパッケージ管理に [Poetry](https://python-poetry.org/) を使用しています。
 
 ```bash
-python -m uvicorn mt5_bridge.main:app --host 0.0.0.0 --port 8000
+# 依存関係のインストール
+poetry install
 ```
 
-`main.py`末尾の`uvicorn.run`を使って直接起動することも可能です。
+LinuxやmacOS環境では、Windows専用の `MetaTrader5` パッケージは自動的にスキップされ、クライアント機能のみが利用可能な状態でインストールされます。
 
-`main.py`を直接実行する場合は、CLI引数`--host`/`--port`でホストとポート（既定 `0.0.0.0:8000`）を変更できます。
+## 使い方
+
+インストールすると `mt5-bridge` コマンドが利用可能になります。
+
+### 1. サーバーの起動 (Windowsのみ)
+
+MT5がインストールされているWindowsマシンで実行します:
 
 ```powershell
-python mt5_bridge/main.py --host 0.0.0.0 --port 9000
+# デフォルト設定 (localhost:8000) で起動
+poetry run mt5-bridge server
+
+# ホストやポートを指定
+poetry run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
-## APIリファレンス
-共通: 全エンドポイントはJSONを返し、エラー時はHTTP 500で`detail`を含むレスポンスを返します。
+主なオプション:
+- `--mt5-path "C:\Path\To\terminal64.exe"`: MT5のパスを明示的に指定して初期化
+- `--no-utc`: サーバー時間をUTCに変換せず、そのまま返す（デフォルトはUTC変換有効）
 
-### GET `/health`
-- 内容: MT5接続状態チェック。
-- レスポンス例:
-```json
-{"status": "ok", "mt5_connected": true}
+### 2. クライアントの利用 (任意のプラットフォーム)
+
+別のマシン（または同一マシン）からクライアントコマンドでサーバーを操作できます。
+
+```bash
+# サーバーのヘルスチェック
+poetry run mt5-bridge client --url http://192.168.1.10:8000 health
+
+# 過去レートの取得 (M1, 最新1000本) - シンボル: XAUUSD
+poetry run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
+
+# 最新ティックの取得
+poetry run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
+
+# 保有ポジションの一覧表示
+poetry run mt5-bridge client --url http://192.168.1.10:8000 positions
 ```
 
-### GET `/rates/{symbol}`
-- クエリ: `timeframe` (例: `M1`, `H1`, `W1`, `MN1`), `count` (取得バー数、既定1000)。
-- 説明: 指定シンボルの最新バーをMT5から取得し、時刻昇順に返却。
-- レスポンスの各要素: `time`, `open`, `high`, `low`, `close`, `tick_volume`, `spread`, `real_volume`。
+### JSON API
 
-### GET `/tick/{symbol}`
-- 説明: 現在のティック情報を取得。
-- レスポンス: `time`, `bid`, `ask`, `last`, `volume`。
+汎用的なHTTPクライアントやライブラリから直接APIを利用することも可能です。
 
-### GET `/positions`
-- 説明: 口座内の全オープンポジションを一覧で返却。
-- 各要素: `ticket`, `symbol`, `type` (`BUY`/`SELL`), `volume`, `price_open`, `sl`, `tp`, `price_current`, `profit`, `time`。
+- `GET /health`
+- `GET /rates/{symbol}?timeframe=M1&count=1000`
+- `GET /tick/{symbol}`
+- `GET /positions`
+- `POST /order`
+- `POST /close`
+- `POST /modify`
 
-### POST `/order`
-- リクエストボディ:
-```json
-{
-  "symbol": "XAUUSD",
-  "type": "BUY",
-  "volume": 0.01,
-  "sl": 0.0,
-  "tp": 0.0,
-  "comment": "Optional text"
-}
-```
-- 説明: 成行注文を送信。成功時 `{ "status": "ok", "ticket": <id> }` を返却。
-
-### POST `/close`
-- リクエストボディ:
-```json
-{
-  "ticket": 12345678
-}
-```
-- 説明: 指定チケットのポジションを反対売買で決済。成功時 `{ "status": "ok" }`。
-
-### POST `/modify`
-- リクエストボディ:
-```json
-{
-  "ticket": 12345678,
-  "sl": 1.095,
-  "tp": 1.115,
-  "update_sl": true,
-  "update_tp": false
-}
-```
-- 説明: 既存ポジションのストップロス／テイクプロフィットを更新。`update_*` が `true` のフィールドのみ書き換え、`sl`/`tp` を省略または `null` にすると該当レベルをクリア。成功時 `{ "status": "ok" }`。
-
-## 設定・拡張のヒント
-- 接続先ポート/ホストはサーバー起動引数で変更できます。外部クライアント（例: Linux上の`trading_brain`）から到達できるよう、Windowsファイアウォールで該当ポートを許可してください。
-- エンドポイントを追加する際は`mt5_handler`に必ず薄いラッパーを用意し、FastAPI層から直接MetaTrader5 APIを呼び出さない方針にすると、将来的なサブモジュール化・単体利用が容易になります。
-- API仕様を変更した場合は、本READMEのエンドポイント定義を更新し、依存リポジトリにも周知してください。
+## 構成
+- `mt5_bridge/main.py`: CLIエントリポイントおよびFastAPIサーバー定義。
+- `mt5_bridge/mt5_handler.py`: MetaTrader5パッケージのラッパー（条件付きインポートにより非Windows環境でもエラーになりません）。
+- `mt5_bridge/client.py`: HTTPクライアントの実装。
 
 ## MCP (Copilot CLI) 連携
-- 目的: MT5 Bridge APIをCopilot CLIのMCPとして公開。デフォルトはstdio、`--http`でHTTPリスナー。
-- 必要条件: `pip install -r requirements.txt`（`fastmcp`と`httpx`を含む）。
-- 環境変数: `MT5_BRIDGE_BASE_URL`（既定 `http://localhost:8000`）。
-- 起動（デフォルト: stdio）:
-  - `python mcp_server.py --api-base http://localhost:8000`
-- HTTP待受で起動（既定ホスト `0.0.0.0`、ポート `8001`）:
-  - `python mcp_server.py --http --api-base http://localhost:8000 --host 0.0.0.0 --port 8001`
-- Copilot CLI: 使用するトランスポート（stdio/HTTP）に合わせて追加（例: HTTPなら `copilot mcp add http http://localhost:8001`）。利用可能ツールはHTTPエンドポイントと同名: `get_rates`, `get_tick`, `list_positions`, `send_order`, `close_position`, `modify_position`, `health`。
+- 目的: MT5 Bridge APIをCopilot CLI (MCP) として公開します。
+- 実行方法:
+  - `python mt5_bridge/mcp_server.py --api-base http://localhost:8000`
 
 ## サポート・寄付
 - <a href="https://github.com/sponsors/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Sponsors" height="32" /></a> GitHub Sponsors: [https://github.com/sponsors/akivajp](https://github.com/sponsors/akivajp)
-- <a href="https://buymeacoffee.com/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/buy_me_a_coffee-63ed78263f6e.svg" alt="Buy Me a Coffee" height="32" /></a>
-Buy Me a Coffee: [https://buymeacoffee.com/akivajp](https://buymeacoffee.com/akivajp)
+- <a href="https://buymeacoffee.com/akivajp" style="vertical-align: middle;"><img src="https://github.githubassets.com/assets/buy_me_a_coffee-63ed78263f6e.svg" alt="Buy Me a Coffee" height="32" /></a> Buy Me a Coffee: [https://buymeacoffee.com/akivajp](https://buymeacoffee.com/akivajp)
 
 上記以外の支援方法を希望される場合は Issue や Discussions でご相談ください。
 少額の寄付・サポートはいつでも大歓迎です。お気持ちだけでも大きな励みになります。

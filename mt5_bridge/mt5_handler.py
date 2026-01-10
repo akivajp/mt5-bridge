@@ -1,12 +1,26 @@
-import MetaTrader5 as mt5
+import sys
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Conditional import for MetaTrader5
+if sys.platform == 'win32':
+    try:
+        import MetaTrader5 as mt5
+    except ImportError:
+        mt5 = None
+        logger.warning("MetaTrader5 package not found")
+else:
+    mt5 = None
+
 import pandas as pd
 from datetime import datetime, timezone
 import logging
 from typing import Optional, Dict, List, Union
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
 
 class MT5Handler:
     def __init__(
@@ -34,6 +48,11 @@ class MT5Handler:
         if self.program_path:
             init_args["path"] = self.program_path
             
+        if mt5 is None:
+            logger.error("MetaTrader5 is not available on this platform (Windows only).")
+            self.connected = False
+            return False
+
         if not mt5.initialize(**init_args):
             logger.error("initialize() failed, error code = %s", mt5.last_error())
             self.connected = False
@@ -85,19 +104,33 @@ class MT5Handler:
         if self._server_offset_sec is not None:
             return
 
-        tick = mt5.symbol_info_tick(symbol)
-        if tick is None:
-            return
+        # Ensure symbol is selected to get fresh tick
+        if not mt5.symbol_select(symbol, True):
+            logger.warning(f"Failed to select symbol {symbol} for offset calculation")
 
-        server_ts = tick.time
+        tick = mt5.symbol_info_tick(symbol)
+        server_ts = 0
+        
+        if tick is not None:
+            server_ts = int(tick.time)
+        else:
+            logger.warning(f"Tick not available for {symbol}, trying last rate for offset")
+            # Try to fetch just 1 bar of M1 to guess time
+            rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M1, 0, 1)
+            if rates is not None and len(rates) > 0:
+                server_ts = int(rates[0]['time'])
+            else:
+                logger.error(f"Could not determine server time for {symbol} (no tick, no rates)")
+                return
+
         # Use simple utc timestamp
         utc_ts = datetime.now(timezone.utc).timestamp()
         
         diff = server_ts - utc_ts
-        # Round to nearest 15 minutes (900s) to handle latency
+        # Round to nearest 15 minutes (900s) to handle latency and candle close lag
         rounded_diff = round(diff / 900) * 900
         self._server_offset_sec = int(rounded_diff)
-        logger.info(f"Server timezone offset estimated: {self._server_offset_sec}s (using {symbol})")
+        logger.info(f"Server timezone offset estimated: {self._server_offset_sec}s (using {symbol}, raw_diff={diff:.1f}s)")
 
     def _apply_time_correction(self, ts: int) -> int:
         """Convert server timestamp to UTC if use_utc is True."""

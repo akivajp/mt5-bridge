@@ -8,11 +8,16 @@ import asyncio
 import argparse
 import os
 import sys
+import json
 
-# Add project root to path to allow imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from mt5_bridge.mt5_handler import MT5Handler
+# Try relative imports (package mode), fallback to path manipulation (script mode)
+try:
+    from .mt5_handler import MT5Handler
+    from .client import BridgeClient
+except ImportError:
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from mt5_bridge.mt5_handler import MT5Handler
+    from mt5_bridge.client import BridgeClient
 
 app = FastAPI(title="MT5 Bridge API")
 mt5_handler = MT5Handler()
@@ -62,11 +67,15 @@ async def monitor_connection():
 @app.on_event("startup")
 async def startup_event():
     """Initialize MT5 connection on startup."""
-    if not mt5_handler.initialize():
-        print("WARNING: Failed to initialize MT5 on startup. Will retry in background.")
-    
-    # Start connection monitor
-    asyncio.create_task(monitor_connection())
+    # Only try to initialize if we are on Windows (checked in main types, but safe here too)
+    if sys.platform == "win32":
+        if not mt5_handler.initialize():
+            print("WARNING: Failed to initialize MT5 on startup. Will retry in background.")
+        
+        # Start connection monitor
+        asyncio.create_task(monitor_connection())
+    else:
+        print("Non-Windows platform detected: MT5 connection disabled.")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -157,63 +166,87 @@ def modify_position(req: ModifyRequest):
         raise HTTPException(status_code=500, detail=f"Failed to modify position: {message}")
     return {"status": "ok"}
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run MT5 Bridge API server")
-    parser.add_argument(
+def main():
+    parser = argparse.ArgumentParser(description="MT5 Bridge CLI")
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+
+    # Serve command
+    server_parser = subparsers.add_parser("server", help="Run MT5 Bridge Server (Windows Only)")
+    server_parser.add_argument(
         "--host",
         default="0.0.0.0",
         help="Host interface to bind (default: 0.0.0.0)",
     )
-    parser.add_argument(
+    server_parser.add_argument(
         "--port",
         type=int,
         default=8000,
         help="Port to listen on (default: 8000)",
     )
-    parser.add_argument(
-        "--mt5-path",
-        default=None,
-        help="Path to MT5 terminal executable",
-    )
-    parser.add_argument(
-        "--mt5-login",
-        type=int,
-        default=None,
-        help="MT5 login account number",
-    )
-    parser.add_argument(
-        "--mt5-password",
-        default=None,
-        help="MT5 account password",
-    )
-    parser.add_argument(
-        "--mt5-server",
-        default=None,
-        help="MT5 server name",
-    )
-    parser.add_argument(
-        "--no-utc",
-        action="store_true",
-        help="Disable automatic Server Time to UTC conversion (Default: conversion enabled)",
-    )
+    server_parser.add_argument("--mt5-path", default=None, help="Path to MT5 executable")
+    server_parser.add_argument("--mt5-login", type=int, default=None, help="MT5 Login ID")
+    server_parser.add_argument("--mt5-password", default=None, help="MT5 Password")
+    server_parser.add_argument("--mt5-server", default=None, help="MT5 Server Name")
+    server_parser.add_argument("--no-utc", action="store_true", help="Disable UTC conversion")
+
+    # Client command
+    client_parser = subparsers.add_parser("client", help="Run MT5 Bridge Client")
+    client_parser.add_argument("--url", default="http://localhost:8000", help="Server URL")
+    
+    client_subs = client_parser.add_subparsers(dest="client_command", help="Client command", required=True)
+    
+    # Client Subcommands
+    client_subs.add_parser("health", help="Check server health")
+    
+    rates_p = client_subs.add_parser("rates", help="Get historical rates")
+    rates_p.add_argument("symbol", type=str)
+    rates_p.add_argument("--timeframe", default="M1")
+    rates_p.add_argument("--count", type=int, default=1000)
+    
+    tick_p = client_subs.add_parser("tick", help="Get latest tick")
+    tick_p.add_argument("symbol", type=str)
+    
+    client_subs.add_parser("positions", help="Get open positions")
+
     args = parser.parse_args()
 
-    # Configure MT5 handler with CLI args
-    if args.mt5_path:
-        mt5_handler.program_path = args.mt5_path
-    if args.mt5_login:
-        mt5_handler.login = args.mt5_login
-    if args.mt5_password:
-        mt5_handler.password = args.mt5_password
-    if args.mt5_server:
-        mt5_handler.server = args.mt5_server
-    
-    # Configure UTC conversion
-    mt5_handler.use_utc = not args.no_utc
-    if mt5_handler.use_utc:
-        print("UTC conversion enabled (Server Time -> UTC)")
-    else:
-        print("UTC conversion disabled (Raw Server Time)")
+    if args.command == "server":
+        if sys.platform != "win32":
+            print("Error: Server functionality is only supported on Windows.")
+            sys.exit(1)
 
-    # Parse CLI args for server host/port / サーバーのホストとポートをCLI引数から取得
-    uvicorn.run(app, host=args.host, port=args.port)
+        # Configure MT5 handler with CLI args
+        if args.mt5_path:
+            mt5_handler.program_path = args.mt5_path
+        if args.mt5_login:
+            mt5_handler.login = args.mt5_login
+        if args.mt5_password:
+            mt5_handler.password = args.mt5_password
+        if args.mt5_server:
+            mt5_handler.server = args.mt5_server
+        
+        # Configure UTC conversion
+        mt5_handler.use_utc = not args.no_utc
+        if mt5_handler.use_utc:
+            print("UTC conversion enabled (Server Time -> UTC)")
+        else:
+            print("UTC conversion disabled (Raw Server Time)")
+
+        # Run Server
+        uvicorn.run(app, host=args.host, port=args.port)
+
+    elif args.command == "client":
+        client = BridgeClient(base_url=args.url)
+        if args.client_command == "health":
+            print(json.dumps(client.check_health(), indent=2))
+        elif args.client_command == "rates":
+            print(json.dumps(client.get_rates(args.symbol, args.timeframe, args.count), indent=2))
+        elif args.client_command == "tick":
+            print(json.dumps(client.get_tick(args.symbol), indent=2))
+        elif args.client_command == "positions":
+            print(json.dumps(client.get_positions(), indent=2))
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()
