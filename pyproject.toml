@@ -1,6 +1,6 @@
 [project]
 name = "mt5-bridge"
-version = "1.1.0"
+version = "1.1.1"
 description = "MT5 Bridge API - REST API and CLI for MetaTrader5"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,9 +13,7 @@ dependencies = [
     "fastmcp>=0.4.1",
     "MetaTrader5>=5.0.0; sys_platform == 'win32'",
 ]
-authors = [
-    {name = "Akiva Miura", email = "akiva.miura@gmail.com"}
-]
+authors = [{ name = "Akiva Miura", email = "akiva.miura@gmail.com" }]
 
 [project.scripts]
 mt5-bridge = "mt5_bridge.main:main"
