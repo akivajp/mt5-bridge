@@ -15,6 +15,10 @@ dependencies = [
 ]
 authors = [{ name = "Akiva Miura", email = "akiva.miura@gmail.com" }]
 
+[project.urls]
+Homepage = "https://github.com/akivajp/mt5-bridge"
+Repository = "https://github.com/akivajp/mt5-bridge"
+
 [project.scripts]
 mt5-bridge = "mt5_bridge.main:main"
 
