@@ -9,6 +9,7 @@ import argparse
 import os
 import sys
 import json
+from importlib.metadata import version, PackageNotFoundError
 
 # Try relative imports (package mode), fallback to path manipulation (script mode)
 try:
@@ -168,6 +169,18 @@ def modify_position(req: ModifyRequest):
 
 def main():
     parser = argparse.ArgumentParser(description="MT5 Bridge CLI")
+    
+    try:
+        app_version = version("mt5-bridge")
+    except PackageNotFoundError:
+        app_version = "unknown"
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"mt5-bridge version: {app_version}\nPython version: {sys.version}"
+    )
+
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Serve command
