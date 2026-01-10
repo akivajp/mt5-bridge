@@ -11,13 +11,13 @@
 - **サーバーモード**: MetaTrader 5ターミナルがインストールされたWindows環境。
 - **クライアントモード**: 任意のOS環境。
 
-## インストール (Poetry)
+## インストール (uv)
 
-本プロジェクトはパッケージ管理に [Poetry](https://python-poetry.org/) を使用しています。
+本プロジェクトはパッケージ管理に [uv](https://github.com/astral-sh/uv) を使用しています。
 
 ```bash
 # 依存関係のインストール
-poetry install
+uv sync
 ```
 
 LinuxやmacOS環境では、Windows専用の `MetaTrader5` パッケージは自動的にスキップされ、クライアント機能のみが利用可能な状態でインストールされます。
@@ -32,10 +32,10 @@ MT5がインストールされているWindowsマシンで実行します:
 
 ```powershell
 # デフォルト設定 (localhost:8000) で起動
-poetry run mt5-bridge server
+uv run mt5-bridge server
 
 # ホストやポートを指定
-poetry run mt5-bridge server --host 0.0.0.0 --port 8000
+uv run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
 主なオプション:
@@ -48,16 +48,16 @@ poetry run mt5-bridge server --host 0.0.0.0 --port 8000
 
 ```bash
 # サーバーのヘルスチェック
-poetry run mt5-bridge client --url http://192.168.1.10:8000 health
+uv run mt5-bridge client --url http://192.168.1.10:8000 health
 
 # 過去レートの取得 (M1, 最新1000本) - シンボル: XAUUSD
-poetry run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
+uv run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
 
 # 最新ティックの取得
-poetry run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
+uv run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
 
 # 保有ポジションの一覧表示
-poetry run mt5-bridge client --url http://192.168.1.10:8000 positions
+uv run mt5-bridge client --url http://192.168.1.10:8000 positions
 ```
 
 ### JSON API
