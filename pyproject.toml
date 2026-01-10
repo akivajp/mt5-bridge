@@ -14,7 +14,7 @@ dependencies = [
     "MetaTrader5>=5.0.0; sys_platform == 'win32'",
 ]
 authors = [
-    {name = "Akiva", email = "akiva@example.com"}
+    {name = "Akiva Miura", email = "akiva.miura@gmail.com"}
 ]
 
 [project.scripts]

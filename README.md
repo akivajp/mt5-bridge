@@ -38,6 +38,9 @@ uv run mt5-bridge server
 uv run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
+> **Note**: If you are using WSL, please checkout this repository on the **Windows file system** (e.g., `C:\Work\mt5_bridge`) and run the command from PowerShell/Command Prompt. Running Windows Python directly against a directory inside WSL (UNC path like `\\wsl.localhost\Ubuntu\...`) often causes `DLL load failed` errors with libraries like NumPy.
+
+
 Additional options:
 - `--mt5-path "C:\Path\To\terminal64.exe"`: proper initialization
 - `--no-utc`: Disable Server Time -> UTC conversion

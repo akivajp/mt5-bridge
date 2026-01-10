@@ -38,6 +38,9 @@ uv run mt5-bridge server
 uv run mt5-bridge server --host 0.0.0.0 --port 8000
 ```
 
+> **注意**: WSL上のディレクトリ（`\\wsl.localhost\...`）にあるソースコードをWindows側のPythonで直接実行すると、NumPyなどのライブラリ読み込み時（DLLロード）にエラーが発生する場合があります。サーバー機能を利用する際は、必ず**Windows側のローカルフォルダ**（例: `C:\Work\mt5_bridge`）にリポジトリを配置して実行してください。
+
+
 主なオプション:
 - `--mt5-path "C:\Path\To\terminal64.exe"`: MT5のパスを明示的に指定して初期化
 - `--no-utc`: サーバー時間をUTCに変換せず、そのまま返す（デフォルトはUTC変換有効）
