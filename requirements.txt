@@ -1,7 +1,0 @@
-# mt5-bridge専用依存パッケージ
-MetaTrader5; sys_platform == 'win32'
-fastapi>=0.110.0
-uvicorn[standard]>=0.29.0
-pydantic>=1.10.0
-fastmcp>=0.4.1
-httpx>=0.27.0
