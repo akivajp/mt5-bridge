@@ -73,6 +73,15 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
 
 # List open positions (optional filters: --symbols XAUUSD,BTCUSD --magic 123456)
 uv run mt5-bridge client --url http://192.168.1.10:8000 positions
+
+# Send order
+uv run mt5-bridge client --url http://192.168.1.10:8000 order XAUUSD BUY 0.01 --sl 2000.0 --tp 2050.0
+
+# Close position
+uv run mt5-bridge client --url http://192.168.1.10:8000 close 12345678
+
+# Modify position
+uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 2005.0
 ```
 
 ### JSON API

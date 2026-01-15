@@ -61,6 +61,15 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
 
 # 保有ポジションの一覧表示 (オプション: --symbols XAUUSD,BTCUSD --magic 123456)
 uv run mt5-bridge client --url http://192.168.1.10:8000 positions
+
+# 新規注文 (例: XAUUSD 0.01ロット 買い, SL 2000.0, TP 2050.0)
+uv run mt5-bridge client --url http://192.168.1.10:8000 order XAUUSD BUY 0.01 --sl 2000.0 --tp 2050.0
+
+# ポジション決済 (チケット番号指定)
+uv run mt5-bridge client --url http://192.168.1.10:8000 close 12345678
+
+# ポジション変更 (SL/TP更新)
+uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 2005.0
 ```
 
 ### JSON API

@@ -233,6 +233,26 @@ def main():
     positions_p.add_argument("--symbols", help="Comma-separated list of symbols (e.g. BTCUSD,ETHUSD)")
     positions_p.add_argument("--magic", type=int, help="Magic number filter")
 
+    # Order command
+    order_p = client_subs.add_parser("order", help="Send a market order")
+    order_p.add_argument("symbol", type=str)
+    order_p.add_argument("type", type=str, choices=["BUY", "SELL"])
+    order_p.add_argument("volume", type=float)
+    order_p.add_argument("--sl", type=float, default=0.0)
+    order_p.add_argument("--tp", type=float, default=0.0)
+    order_p.add_argument("--comment", type=str, default="")
+    order_p.add_argument("--magic", type=int, default=123456)
+
+    # Close command
+    close_p = client_subs.add_parser("close", help="Close a position")
+    close_p.add_argument("ticket", type=int)
+
+    # Modify command
+    modify_p = client_subs.add_parser("modify", help="Modify position SL/TP")
+    modify_p.add_argument("ticket", type=int)
+    modify_p.add_argument("--sl", type=float, default=None)
+    modify_p.add_argument("--tp", type=float, default=None)
+
     args = parser.parse_args()
 
     if args.command == "server":
@@ -271,6 +291,14 @@ def main():
         elif args.client_command == "positions":
             symbols = args.symbols.split(",") if args.symbols else None
             print(json.dumps(client.get_positions(symbols=symbols, magic=args.magic), indent=2))
+        elif args.client_command == "order":
+            print(json.dumps(client.send_order(
+                args.symbol, args.type, args.volume, args.sl, args.tp, args.comment, args.magic
+            ), indent=2))
+        elif args.client_command == "close":
+            print(json.dumps(client.close_position(args.ticket), indent=2))
+        elif args.client_command == "modify":
+            print(json.dumps(client.modify_position(args.ticket, args.sl, args.tp), indent=2))
     else:
         parser.print_help()
 
