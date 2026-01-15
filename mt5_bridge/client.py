@@ -26,10 +26,16 @@ class BridgeClient:
             print(f"Error fetching tick: {e}")
             return None
     
-    def get_positions(self) -> List[Dict[str, Any]]:
+    def get_positions(self, symbols: Optional[List[str]] = None, magic: Optional[int] = None) -> List[Dict[str, Any]]:
         url = f"{self.base_url}/positions"
+        params = {}
+        if symbols:
+            params["symbols"] = ",".join(symbols)
+        if magic is not None:
+            params["magic"] = magic
+
         try:
-            resp = httpx.get(url, timeout=5.0)
+            resp = httpx.get(url, params=params, timeout=5.0)
             resp.raise_for_status()
             return resp.json()
         except httpx.HTTPError as e:

@@ -229,7 +229,9 @@ def main():
     tick_p = client_subs.add_parser("tick", help="Get latest tick")
     tick_p.add_argument("symbol", type=str)
     
-    client_subs.add_parser("positions", help="Get open positions")
+    positions_p = client_subs.add_parser("positions", help="Get open positions")
+    positions_p.add_argument("--symbols", help="Comma-separated list of symbols (e.g. BTCUSD,ETHUSD)")
+    positions_p.add_argument("--magic", type=int, help="Magic number filter")
 
     args = parser.parse_args()
 
@@ -267,7 +269,8 @@ def main():
         elif args.client_command == "tick":
             print(json.dumps(client.get_tick(args.symbol), indent=2))
         elif args.client_command == "positions":
-            print(json.dumps(client.get_positions(), indent=2))
+            symbols = args.symbols.split(",") if args.symbols else None
+            print(json.dumps(client.get_positions(symbols=symbols, magic=args.magic), indent=2))
     else:
         parser.print_help()
 
