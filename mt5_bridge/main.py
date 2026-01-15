@@ -106,8 +106,18 @@ def get_tick(symbol: str):
     return tick
 
 @app.get("/positions", response_model=List[Position])
-def get_positions():
-    positions = mt5_handler.get_positions()
+def get_positions(
+    symbols: Optional[str] = Query(None, description="Comma-separated list of symbols to filter (e.g., 'XAUUSD,BTCUSD')"),
+    magic: Optional[int] = Query(None, description="Magic number to filter positions by"),
+):
+    # symbols パラメータがあればリストに変換
+    symbol_list = None
+    if symbols:
+        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()]
+        if not symbol_list:
+            symbol_list = None
+    
+    positions = mt5_handler.get_positions(symbols=symbol_list, magic=magic)
     if positions is None:
         raise HTTPException(status_code=500, detail="Failed to get positions")
     return positions

@@ -225,9 +225,20 @@ class MT5Handler:
             "volume": int(tick.volume)
         }
 
-    def get_positions(self) -> Optional[List[Dict]]:
+    def get_positions(
+        self,
+        symbols: Optional[List[str]] = None,
+        magic: Optional[int] = None,
+    ) -> Optional[List[Dict]]:
         """
-        Get current open positions.
+        Get current open positions with optional filtering.
+        
+        Args:
+            symbols: If provided, only return positions for these symbols.
+            magic: If provided, only return positions with this magic number.
+        
+        Returns:
+            List of position dictionaries, or None if failed.
         """
         if not self.connected:
             if not self.initialize():
@@ -239,15 +250,25 @@ class MT5Handler:
             
         result = []
         for pos in positions:
+            # magic number フィルタ
+            pos_magic = int(getattr(pos, "magic", 0))
+            if magic is not None and pos_magic != magic:
+                continue
+            
+            # symbol フィルタ
+            pos_symbol = pos.symbol
+            if symbols is not None and pos_symbol not in symbols:
+                continue
+            
             result.append({
                 "ticket": int(pos.ticket),
-                "symbol": pos.symbol,
+                "symbol": pos_symbol,
                 "type": "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL",
                 "volume": float(pos.volume),
                 "price_open": float(pos.price_open),
                 # deep-trader 側で「自分のポジだけ」を安全に識別するために必要
                 "comment": str(getattr(pos, "comment", "")),
-                "magic": int(getattr(pos, "magic", 0)),
+                "magic": pos_magic,
                 "sl": float(pos.sl),
                 "tp": float(pos.tp),
                 "price_current": float(pos.price_current),
