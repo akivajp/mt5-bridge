@@ -241,6 +241,13 @@ def main():
     rates_p.add_argument("--timeframe", default="M1")
     rates_p.add_argument("--count", type=int, default=1000)
     
+    # 日付範囲指定でのレート取得コマンド
+    rates_range_p = client_subs.add_parser("rates_range", help="Get historical rates by date range")
+    rates_range_p.add_argument("symbol", type=str)
+    rates_range_p.add_argument("--timeframe", default="M1", help="Timeframe (e.g. M1, H1)")
+    rates_range_p.add_argument("--start", type=int, required=True, help="Start timestamp (UTC)")
+    rates_range_p.add_argument("--end", type=int, required=True, help="End timestamp (UTC)")
+
     tick_p = client_subs.add_parser("tick", help="Get latest tick")
     tick_p.add_argument("symbol", type=str)
     
@@ -301,6 +308,8 @@ def main():
             print(json.dumps(client.check_health(), indent=2))
         elif args.client_command == "rates":
             print(json.dumps(client.get_rates(args.symbol, args.timeframe, args.count), indent=2))
+        elif args.client_command == "rates_range":
+            print(json.dumps(client.get_rates_range(args.symbol, args.timeframe, args.start, args.end), indent=2))
         elif args.client_command == "tick":
             print(json.dumps(client.get_tick(args.symbol), indent=2))
         elif args.client_command == "positions":

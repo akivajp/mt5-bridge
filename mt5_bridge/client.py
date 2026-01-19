@@ -16,6 +16,29 @@ class BridgeClient:
             print(f"Error fetching rates: {e}")
             return []
 
+    def get_rates_range(self, symbol: str, timeframe: str, start: int, end: int) -> List[Dict[str, Any]]:
+        """
+        日付範囲を指定して履歴レートを取得する。
+        
+        Args:
+            symbol: シンボル名 (例: "XAUUSD")
+            timeframe: 時間足 (例: "M1", "H1")
+            start: 開始タイムスタンプ (UTC)
+            end: 終了タイムスタンプ (UTC)
+            
+        Returns:
+            レートデータの辞書リスト
+        """
+        url = f"{self.base_url}/rates_range/{symbol}"
+        params = {"timeframe": timeframe, "start": start, "end": end}
+        try:
+            resp = httpx.get(url, params=params, timeout=30.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching rates range: {e}")
+            return []
+
     def get_tick(self, symbol: str) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url}/tick/{symbol}"
         try:
