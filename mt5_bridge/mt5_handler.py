@@ -201,6 +201,71 @@ class MT5Handler:
             
         return result
 
+    def get_rates_range(self, symbol: str, timeframe_str: str, date_from: datetime, date_to: datetime) -> Optional[List[Dict]]:
+        """
+        Get historical rates for a symbol within a date range.
+        
+        Args:
+            symbol: Symbol name
+            timeframe_str: Timeframe string
+            date_from: Start date (datetime)
+            date_to: End date (datetime)
+            
+        Returns:
+            List of dictionaries containing rate data.
+        """
+        if not self.connected:
+            if not self.initialize():
+                return None
+
+        # Map timeframe string to MT5 constant
+        tf_map = {
+            "M1": mt5.TIMEFRAME_M1,
+            "M5": mt5.TIMEFRAME_M5,
+            "M15": mt5.TIMEFRAME_M15,
+            "M30": mt5.TIMEFRAME_M30,
+            "H1": mt5.TIMEFRAME_H1,
+            "H4": mt5.TIMEFRAME_H4,
+            "D1": mt5.TIMEFRAME_D1,
+            "W1": getattr(mt5, "TIMEFRAME_W1", None),
+            "MN1": getattr(mt5, "TIMEFRAME_MN1", None),
+        }
+        
+        mt5_tf = tf_map.get(timeframe_str)
+        if mt5_tf is None:
+            logger.error(f"Invalid timeframe: {timeframe_str}")
+            return None
+
+        # copy_rates_range はサーバー時間を受け取ることを期待するため、
+        # UTC -> ServerTime の逆変換を適用する
+        if self.use_utc and self._server_offset_sec is None:
+            self._update_server_offset(symbol)
+        
+        offset = self._server_offset_sec or 0
+        server_from = datetime.fromtimestamp(date_from.timestamp() + offset)
+        server_to = datetime.fromtimestamp(date_to.timestamp() + offset)
+
+        rates = mt5.copy_rates_range(symbol, mt5_tf, server_from, server_to)
+        
+        if rates is None:
+            logger.error(f"Failed to get rates range for {symbol} ({mt5.last_error()})")
+            return None
+            
+        result = []
+        for rate in rates:
+            result.append({
+                "time": self._apply_time_correction(int(rate['time'])),
+                "open": float(rate['open']),
+                "high": float(rate['high']),
+                "low": float(rate['low']),
+                "close": float(rate['close']),
+                "tick_volume": int(rate['tick_volume']),
+                "spread": int(rate['spread']),
+                "real_volume": int(rate['real_volume'])
+            })
+            
+        return result
+
     def get_tick(self, symbol: str) -> Optional[Dict]:
         """
         Get latest tick data.
