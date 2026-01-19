@@ -98,6 +98,21 @@ def get_rates(
         raise HTTPException(status_code=500, detail=f"Failed to get rates for {symbol}")
     return rates
 
+@app.get("/rates_range/{symbol}", response_model=List[Rate])
+def get_rates_range(
+    symbol: str,
+    timeframe: str = Query(..., description="Timeframe (e.g., M1, H1)"),
+    start: int = Query(..., description="Start timestamp (UTC)"),
+    end: int = Query(..., description="End timestamp (UTC)")
+):
+    from datetime import datetime, timezone
+    date_from = datetime.fromtimestamp(start, tz=timezone.utc)
+    date_to = datetime.fromtimestamp(end, tz=timezone.utc)
+    rates = mt5_handler.get_rates_range(symbol, timeframe, date_from, date_to)
+    if rates is None:
+        raise HTTPException(status_code=500, detail=f"Failed to get rates range for {symbol}")
+    return rates
+
 @app.get("/tick/{symbol}", response_model=Tick)
 def get_tick(symbol: str):
     tick = mt5_handler.get_tick(symbol)
