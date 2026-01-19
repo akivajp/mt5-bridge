@@ -9,6 +9,8 @@ import argparse
 import os
 import sys
 import json
+from datetime import datetime, timezone
+import pandas as pd
 from importlib.metadata import version, PackageNotFoundError
 
 # Try relative imports (package mode), fallback to path manipulation (script mode)
@@ -22,6 +24,22 @@ except ImportError:
 
 app = FastAPI(title="MT5 Bridge API")
 mt5_handler = MT5Handler()
+
+def parse_datetime(val: str) -> int:
+    """Parse a string as a unix timestamp or a datetime string."""
+    try:
+        # Try as a numeric timestamp first
+        return int(float(val))
+    except ValueError:
+        # Try as a datetime string using pandas for flexibility
+        dt = pd.to_datetime(val)
+        if dt.tzinfo is None:
+            # Assume UTC if no timezone is provided
+            dt = dt.tz_localize('UTC')
+        else:
+            # Convert to UTC if a timezone is provided
+            dt = dt.tz_convert('UTC')
+        return int(dt.timestamp())
 
 class Rate(BaseModel):
     time: int
@@ -113,12 +131,17 @@ def get_rates(
 def get_rates_range(
     symbol: str,
     timeframe: str = Query(..., description="Timeframe (e.g., M1, H1)"),
-    start: int = Query(..., description="Start timestamp (UTC)"),
-    end: int = Query(..., description="End timestamp (UTC)")
+    start: str = Query(..., description="Start timestamp or datetime string (UTC)"),
+    end: str = Query(..., description="End timestamp or datetime string (UTC)")
 ):
-    from datetime import datetime, timezone
-    date_from = datetime.fromtimestamp(start, tz=timezone.utc)
-    date_to = datetime.fromtimestamp(end, tz=timezone.utc)
+    try:
+        start_ts = parse_datetime(start)
+        end_ts = parse_datetime(end)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+
+    date_from = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+    date_to = datetime.fromtimestamp(end_ts, tz=timezone.utc)
     rates = mt5_handler.get_rates_range(symbol, timeframe, date_from, date_to)
     if rates is None:
         raise HTTPException(status_code=500, detail=f"Failed to get rates range for {symbol}")
@@ -263,8 +286,8 @@ def main():
     rates_range_p = client_subs.add_parser("rates_range", help="Get historical rates by date range")
     rates_range_p.add_argument("symbol", type=str)
     rates_range_p.add_argument("--timeframe", default="M1", help="Timeframe (e.g. M1, H1)")
-    rates_range_p.add_argument("--start", type=int, required=True, help="Start timestamp (UTC)")
-    rates_range_p.add_argument("--end", type=int, required=True, help="End timestamp (UTC)")
+    rates_range_p.add_argument("--start", type=str, required=True, help="Start timestamp or datetime string (e.g. 2025-01-01)")
+    rates_range_p.add_argument("--end", type=str, required=True, help="End timestamp or datetime string (e.g. 2025-01-01 12:00)")
 
     tick_p = client_subs.add_parser("tick", help="Get latest tick")
     tick_p.add_argument("symbol", type=str)
@@ -329,7 +352,13 @@ def main():
         elif args.client_command == "rates":
             print(json.dumps(client.get_rates(args.symbol, args.timeframe, args.count), indent=2))
         elif args.client_command == "rates_range":
-            print(json.dumps(client.get_rates_range(args.symbol, args.timeframe, args.start, args.end), indent=2))
+            try:
+                start_ts = parse_datetime(args.start)
+                end_ts = parse_datetime(args.end)
+                print(json.dumps(client.get_rates_range(args.symbol, args.timeframe, start_ts, end_ts), indent=2))
+            except Exception as e:
+                print(f"Error parsing date: {e}")
+                sys.exit(1)
         elif args.client_command == "tick":
             print(json.dumps(client.get_tick(args.symbol), indent=2))
         elif args.client_command == "account":

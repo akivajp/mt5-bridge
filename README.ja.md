@@ -65,6 +65,9 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 account
 # 保有ポジションの一覧表示 (オプション: --symbols XAUUSD,BTCUSD --magic 123456)
 uv run mt5-bridge client --url http://192.168.1.10:8000 positions
 
+# 指定期間のレート取得 (タイムスタンプまたは日時文字列)
+uv run mt5-bridge client --url http://192.168.1.10:8000 rates_range XAUUSD --timeframe M1 --start 2025-01-01 --end 2025-01-02
+
 # 新規注文 (例: XAUUSD 0.01ロット 買い, SL 2000.0, TP 2050.0)
 uv run mt5-bridge client --url http://192.168.1.10:8000 order XAUUSD BUY 0.01 --sl 2000.0 --tp 2050.0
 
