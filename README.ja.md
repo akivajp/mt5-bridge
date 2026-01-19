@@ -59,6 +59,9 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
 # 最新ティックの取得
 uv run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
 
+# 口座情報の取得
+uv run mt5-bridge client --url http://192.168.1.10:8000 account
+
 # 保有ポジションの一覧表示 (オプション: --symbols XAUUSD,BTCUSD --magic 123456)
 uv run mt5-bridge client --url http://192.168.1.10:8000 positions
 
@@ -79,6 +82,7 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 200
 - `GET /health`
 - `GET /rates/{symbol}?timeframe=M1&count=1000`
 - `GET /tick/{symbol}`
+- `GET /account`
 - `GET /positions?symbols=XAUUSD,BTCUSD&magic=123456`
 - `POST /order`
 - `POST /close`

@@ -74,6 +74,9 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 rates_range XAUUSD --tim
 # Get latest tick
 uv run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
 
+# Get account information
+uv run mt5-bridge client --url http://192.168.1.10:8000 account
+
 # List open positions (optional filters: --symbols XAUUSD,BTCUSD --magic 123456)
 uv run mt5-bridge client --url http://192.168.1.10:8000 positions
 
@@ -95,6 +98,7 @@ You can also access the API directly via generic HTTP clients (curl, Postman, sp
 - `GET /rates/{symbol}?timeframe=M1&count=1000`
 - `GET /rates_range/{symbol}?timeframe=M1&start=1767225600&end=1768435200`
 - `GET /tick/{symbol}`
+- `GET /account`
 - `GET /positions?symbols=XAUUSD,BTCUSD&magic=123456`
 - `POST /order`
 - `POST /close`
