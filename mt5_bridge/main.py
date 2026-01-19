@@ -40,6 +40,17 @@ class Tick(BaseModel):
     last: float
     volume: int
 
+class Account(BaseModel):
+    login: int
+    balance: float
+    equity: float
+    margin: float
+    margin_free: float
+    margin_level: float
+    leverage: int
+    currency: str
+    server: str
+
 class Position(BaseModel):
     ticket: int
     symbol: str
@@ -119,6 +130,13 @@ def get_tick(symbol: str):
     if tick is None:
         raise HTTPException(status_code=500, detail=f"Failed to get tick for {symbol}")
     return tick
+
+@app.get("/account", response_model=Account)
+def get_account():
+    account = mt5_handler.get_account_info()
+    if account is None:
+        raise HTTPException(status_code=500, detail="Failed to get account info")
+    return account
 
 @app.get("/positions", response_model=List[Position])
 def get_positions(
@@ -251,6 +269,8 @@ def main():
     tick_p = client_subs.add_parser("tick", help="Get latest tick")
     tick_p.add_argument("symbol", type=str)
     
+    client_subs.add_parser("account", help="Get account information")
+
     positions_p = client_subs.add_parser("positions", help="Get open positions")
     positions_p.add_argument("--symbols", help="Comma-separated list of symbols (e.g. BTCUSD,ETHUSD)")
     positions_p.add_argument("--magic", type=int, help="Magic number filter")
@@ -312,6 +332,8 @@ def main():
             print(json.dumps(client.get_rates_range(args.symbol, args.timeframe, args.start, args.end), indent=2))
         elif args.client_command == "tick":
             print(json.dumps(client.get_tick(args.symbol), indent=2))
+        elif args.client_command == "account":
+            print(json.dumps(client.get_account_info(), indent=2))
         elif args.client_command == "positions":
             symbols = args.symbols.split(",") if args.symbols else None
             print(json.dumps(client.get_positions(symbols=symbols, magic=args.magic), indent=2))

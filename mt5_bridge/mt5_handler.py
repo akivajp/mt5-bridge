@@ -290,6 +290,31 @@ class MT5Handler:
             "volume": int(tick.volume)
         }
 
+    def get_account_info(self) -> Optional[Dict]:
+        """
+        Get account information (balance, equity, etc.).
+        """
+        if not self.connected:
+            if not self.initialize():
+                return None
+                
+        account_info = mt5.account_info()
+        if account_info is None:
+            logger.error(f"Failed to get account info: {mt5.last_error()}")
+            return None
+            
+        return {
+            "login": int(account_info.login),
+            "balance": float(account_info.balance),
+            "equity": float(account_info.equity),
+            "margin": float(account_info.margin),
+            "margin_free": float(account_info.margin_free),
+            "margin_level": float(account_info.margin_level),
+            "leverage": int(account_info.leverage),
+            "currency": str(account_info.currency),
+            "server": str(account_info.server)
+        }
+
     def get_positions(
         self,
         symbols: Optional[List[str]] = None,

@@ -49,6 +49,16 @@ class BridgeClient:
             print(f"Error fetching tick: {e}")
             return None
     
+    def get_account_info(self) -> Optional[Dict[str, Any]]:
+        url = f"{self.base_url}/account"
+        try:
+            resp = httpx.get(url, timeout=5.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching account info: {e}")
+            return None
+    
     def get_positions(self, symbols: Optional[List[str]] = None, magic: Optional[int] = None) -> List[Dict[str, Any]]:
         url = f"{self.base_url}/positions"
         params = {}
