@@ -290,6 +290,136 @@ class MT5Handler:
             "volume": int(tick.volume)
         }
 
+    def get_ticks_from(
+        self,
+        symbol: str,
+        date_from: datetime,
+        count: int,
+        flags: str = "ALL"
+    ) -> Optional[List[Dict]]:
+        """
+        指定日時から指定件数の過去ティックデータを取得する。
+        
+        Args:
+            symbol: シンボル名 (例: "XAUUSD")
+            date_from: 開始日時 (datetime, UTC推奨)
+            count: 取得するティック数
+            flags: ティックの種類 ("ALL", "INFO", "TRADE")
+                   - ALL: すべてのティック
+                   - INFO: Bid/Ask変更のティック
+                   - TRADE: Last/Volume変更のティック
+            
+        Returns:
+            ティックデータの辞書リスト、またはエラー時None
+        """
+        if not self.connected:
+            if not self.initialize():
+                return None
+        
+        # フラグのマッピング
+        flag_map = {
+            "ALL": mt5.COPY_TICKS_ALL,
+            "INFO": mt5.COPY_TICKS_INFO,
+            "TRADE": mt5.COPY_TICKS_TRADE,
+        }
+        mt5_flags = flag_map.get(flags.upper(), mt5.COPY_TICKS_ALL)
+        
+        # UTC -> ServerTime の逆変換を適用
+        if self.use_utc and self._server_offset_sec is None:
+            self._update_server_offset(symbol)
+        
+        offset = self._server_offset_sec or 0
+        server_from = datetime.fromtimestamp(date_from.timestamp() + offset, tz=timezone.utc)
+        
+        ticks = mt5.copy_ticks_from(symbol, server_from, count, mt5_flags)
+        
+        if ticks is None:
+            logger.error(f"Failed to get ticks from {symbol}: {mt5.last_error()}")
+            return None
+        
+        if len(ticks) == 0:
+            logger.warning(f"No ticks returned for {symbol} from {date_from}")
+            return []
+        
+        # numpy配列を辞書リストに変換
+        result = []
+        for tick in ticks:
+            result.append({
+                "time": self._apply_time_correction(int(tick['time'])),
+                "time_msc": int(tick['time_msc']),  # ミリ秒精度のタイムスタンプ
+                "bid": float(tick['bid']),
+                "ask": float(tick['ask']),
+                "last": float(tick['last']),
+                "volume": int(tick['volume']),
+                "flags": int(tick['flags']),  # ティック変更フラグ
+            })
+        
+        return result
+
+    def get_ticks_range(
+        self,
+        symbol: str,
+        date_from: datetime,
+        date_to: datetime,
+        flags: str = "ALL"
+    ) -> Optional[List[Dict]]:
+        """
+        指定日時範囲の過去ティックデータを取得する。
+        
+        Args:
+            symbol: シンボル名 (例: "XAUUSD")
+            date_from: 開始日時 (datetime, UTC推奨)
+            date_to: 終了日時 (datetime, UTC推奨)
+            flags: ティックの種類 ("ALL", "INFO", "TRADE")
+            
+        Returns:
+            ティックデータの辞書リスト、またはエラー時None
+        """
+        if not self.connected:
+            if not self.initialize():
+                return None
+        
+        # フラグのマッピング
+        flag_map = {
+            "ALL": mt5.COPY_TICKS_ALL,
+            "INFO": mt5.COPY_TICKS_INFO,
+            "TRADE": mt5.COPY_TICKS_TRADE,
+        }
+        mt5_flags = flag_map.get(flags.upper(), mt5.COPY_TICKS_ALL)
+        
+        # UTC -> ServerTime の逆変換を適用
+        if self.use_utc and self._server_offset_sec is None:
+            self._update_server_offset(symbol)
+        
+        offset = self._server_offset_sec or 0
+        server_from = datetime.fromtimestamp(date_from.timestamp() + offset, tz=timezone.utc)
+        server_to = datetime.fromtimestamp(date_to.timestamp() + offset, tz=timezone.utc)
+        
+        ticks = mt5.copy_ticks_range(symbol, server_from, server_to, mt5_flags)
+        
+        if ticks is None:
+            logger.error(f"Failed to get ticks range for {symbol}: {mt5.last_error()}")
+            return None
+        
+        if len(ticks) == 0:
+            logger.warning(f"No ticks returned for {symbol} in range {date_from} to {date_to}")
+            return []
+        
+        # numpy配列を辞書リストに変換
+        result = []
+        for tick in ticks:
+            result.append({
+                "time": self._apply_time_correction(int(tick['time'])),
+                "time_msc": int(tick['time_msc']),  # ミリ秒精度のタイムスタンプ
+                "bid": float(tick['bid']),
+                "ask": float(tick['ask']),
+                "last": float(tick['last']),
+                "volume": int(tick['volume']),
+                "flags": int(tick['flags']),  # ティック変更フラグ
+            })
+        
+        return result
+
     def get_account_info(self) -> Optional[Dict]:
         """
         Get account information (balance, equity, etc.).

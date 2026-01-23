@@ -58,6 +58,16 @@ class Tick(BaseModel):
     last: float
     volume: int
 
+class HistoricalTick(BaseModel):
+    """過去ティックデータのモデル（ミリ秒精度対応）"""
+    time: int              # 秒単位のタイムスタンプ (UTC)
+    time_msc: int          # ミリ秒単位のタイムスタンプ
+    bid: float
+    ask: float
+    last: float
+    volume: int
+    flags: int             # ティック変更フラグ (Bid/Ask/Last/Volumeの変更種別)
+
 class Account(BaseModel):
     login: int
     balance: float
@@ -153,6 +163,55 @@ def get_tick(symbol: str):
     if tick is None:
         raise HTTPException(status_code=500, detail=f"Failed to get tick for {symbol}")
     return tick
+
+@app.get("/ticks_from/{symbol}", response_model=List[HistoricalTick])
+def get_ticks_from(
+    symbol: str,
+    start: str = Query(..., description="Start timestamp or datetime string (UTC)"),
+    count: int = Query(1000, description="Number of ticks to retrieve"),
+    flags: str = Query("ALL", description="Tick type: ALL, INFO (bid/ask changes), TRADE (last/volume changes)")
+):
+    """
+    指定日時から過去ティックデータを取得する。
+    
+    秒スキャルピングの強化学習訓練データなどに使用。
+    """
+    try:
+        start_ts = parse_datetime(start)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+    
+    date_from = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+    ticks = mt5_handler.get_ticks_from(symbol, date_from, count, flags)
+    if ticks is None:
+        raise HTTPException(status_code=500, detail=f"Failed to get ticks from {symbol}")
+    return ticks
+
+@app.get("/ticks_range/{symbol}", response_model=List[HistoricalTick])
+def get_ticks_range(
+    symbol: str,
+    start: str = Query(..., description="Start timestamp or datetime string (UTC)"),
+    end: str = Query(..., description="End timestamp or datetime string (UTC)"),
+    flags: str = Query("ALL", description="Tick type: ALL, INFO (bid/ask changes), TRADE (last/volume changes)")
+):
+    """
+    指定日時範囲の過去ティックデータを取得する。
+    
+    秒スキャルピングの強化学習訓練データなどに使用。
+    注意: 大量のティックデータを取得する場合は時間がかかる可能性があります。
+    """
+    try:
+        start_ts = parse_datetime(start)
+        end_ts = parse_datetime(end)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+    
+    date_from = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+    date_to = datetime.fromtimestamp(end_ts, tz=timezone.utc)
+    ticks = mt5_handler.get_ticks_range(symbol, date_from, date_to, flags)
+    if ticks is None:
+        raise HTTPException(status_code=500, detail=f"Failed to get ticks range for {symbol}")
+    return ticks
 
 @app.get("/account", response_model=Account)
 def get_account():
@@ -318,6 +377,21 @@ def main():
     modify_p.add_argument("--sl", type=float, default=None)
     modify_p.add_argument("--tp", type=float, default=None)
 
+    # Tick data commands (for tick scalping / high-frequency trading research)
+    ticks_from_p = client_subs.add_parser("ticks_from", help="Get historical ticks from a specific date")
+    ticks_from_p.add_argument("symbol", type=str)
+    ticks_from_p.add_argument("--start", type=str, required=True, help="Start timestamp or datetime string (e.g. 2025-01-01)")
+    ticks_from_p.add_argument("--count", type=int, default=1000, help="Number of ticks to retrieve")
+    ticks_from_p.add_argument("--flags", type=str, default="ALL", choices=["ALL", "INFO", "TRADE"], 
+                               help="Tick type: ALL, INFO (bid/ask), TRADE (last/volume)")
+    
+    ticks_range_p = client_subs.add_parser("ticks_range", help="Get historical ticks within a date range")
+    ticks_range_p.add_argument("symbol", type=str)
+    ticks_range_p.add_argument("--start", type=str, required=True, help="Start timestamp or datetime string")
+    ticks_range_p.add_argument("--end", type=str, required=True, help="End timestamp or datetime string")
+    ticks_range_p.add_argument("--flags", type=str, default="ALL", choices=["ALL", "INFO", "TRADE"],
+                                help="Tick type: ALL, INFO (bid/ask), TRADE (last/volume)")
+
     args = parser.parse_args()
 
     if args.command == "server":
@@ -374,6 +448,29 @@ def main():
             print(json.dumps(client.close_position(args.ticket), indent=2))
         elif args.client_command == "modify":
             print(json.dumps(client.modify_position(args.ticket, args.sl, args.tp), indent=2))
+        elif args.client_command == "ticks_from":
+            try:
+                start_ts = parse_datetime(args.start)
+                result = client.get_ticks_from(args.symbol, start_ts, args.count, args.flags)
+                print(f"Retrieved {len(result)} ticks")
+                print(json.dumps(result[:10] if len(result) > 10 else result, indent=2))
+                if len(result) > 10:
+                    print(f"... and {len(result) - 10} more ticks")
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+        elif args.client_command == "ticks_range":
+            try:
+                start_ts = parse_datetime(args.start)
+                end_ts = parse_datetime(args.end)
+                result = client.get_ticks_range(args.symbol, start_ts, end_ts, args.flags)
+                print(f"Retrieved {len(result)} ticks")
+                print(json.dumps(result[:10] if len(result) > 10 else result, indent=2))
+                if len(result) > 10:
+                    print(f"... and {len(result) - 10} more ticks")
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
     else:
         parser.print_help()
 

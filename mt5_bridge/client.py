@@ -39,6 +39,66 @@ class BridgeClient:
             print(f"Error fetching rates range: {e}")
             return []
 
+    def get_ticks_from(
+        self,
+        symbol: str,
+        start: int,
+        count: int = 1000,
+        flags: str = "ALL"
+    ) -> List[Dict[str, Any]]:
+        """
+        指定日時から過去ティックデータを取得する。
+        
+        Args:
+            symbol: シンボル名 (例: "XAUUSD")
+            start: 開始タイムスタンプ (UTC)
+            count: 取得するティック数
+            flags: ティックの種類 ("ALL", "INFO", "TRADE")
+            
+        Returns:
+            ティックデータの辞書リスト
+        """
+        url = f"{self.base_url}/ticks_from/{symbol}"
+        params = {"start": start, "count": count, "flags": flags}
+        try:
+            # ティックデータは量が多い可能性があるためタイムアウトを長めに設定
+            resp = httpx.get(url, params=params, timeout=60.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching ticks from: {e}")
+            return []
+
+    def get_ticks_range(
+        self,
+        symbol: str,
+        start: int,
+        end: int,
+        flags: str = "ALL"
+    ) -> List[Dict[str, Any]]:
+        """
+        指定日時範囲の過去ティックデータを取得する。
+        
+        Args:
+            symbol: シンボル名 (例: "XAUUSD")
+            start: 開始タイムスタンプ (UTC)
+            end: 終了タイムスタンプ (UTC)
+            flags: ティックの種類 ("ALL", "INFO", "TRADE")
+            
+        Returns:
+            ティックデータの辞書リスト
+        """
+        url = f"{self.base_url}/ticks_range/{symbol}"
+        params = {"start": start, "end": end, "flags": flags}
+        try:
+            # ティックデータは量が多い可能性があるためタイムアウトを長めに設定
+            resp = httpx.get(url, params=params, timeout=120.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching ticks range: {e}")
+            return []
+
     def get_tick(self, symbol: str) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url}/tick/{symbol}"
         try:
