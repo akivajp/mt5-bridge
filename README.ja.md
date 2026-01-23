@@ -68,6 +68,12 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 positions
 # 指定期間のレート取得 (タイムスタンプまたは日時文字列)
 uv run mt5-bridge client --url http://192.168.1.10:8000 rates_range XAUUSD --timeframe M1 --start 2025-01-01 --end 2025-01-02
 
+# 過去ティックデータ取得 (指定日時から件数指定)
+uv run mt5-bridge client --url http://192.168.1.10:8000 ticks_from XAUUSD --start 2025-01-01 --count 1000 --flags ALL
+
+# 過去ティックデータ取得 (日時範囲指定)
+uv run mt5-bridge client --url http://192.168.1.10:8000 ticks_range XAUUSD --start "2025-01-01 10:00:00" --end "2025-01-01 10:05:00" --flags TRADE
+
 # 新規注文 (例: XAUUSD 0.01ロット 買い, SL 2000.0, TP 2050.0)
 uv run mt5-bridge client --url http://192.168.1.10:8000 order XAUUSD BUY 0.01 --sl 2000.0 --tp 2050.0
 
@@ -84,12 +90,31 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 200
 
 - `GET /health`
 - `GET /rates/{symbol}?timeframe=M1&count=1000`
+- `GET /rates_range/{symbol}?timeframe=M1&start=2025-01-01&end=2025-01-02`
 - `GET /tick/{symbol}`
+- `GET /ticks_from/{symbol}?start=2025-01-01&count=1000&flags=ALL` (**v1.5.0~**)
+- `GET /ticks_range/{symbol}?start=2025-01-01&end=2025-01-02&flags=ALL` (**v1.5.0~**)
 - `GET /account`
 - `GET /positions?symbols=XAUUSD,BTCUSD&magic=123456`
 - `POST /order`
 - `POST /close`
 - `POST /modify`
+
+### ティックデータについて (v1.5.0~)
+
+履歴ティックデータ機能では、以下のフラグを使用してティックの種類を指定できます:
+
+| フラグ | 説明 |
+|--------|------|
+| `ALL` | すべてのティック |
+| `INFO` | Bid/Askの変更を含むティック |
+| `TRADE` | Last/Volumeの変更を含むティック（実約定） |
+
+レスポンスには以下のフィールドが含まれます:
+- `time`: 秒単位のタイムスタンプ (UTC)
+- `time_msc`: ミリ秒単位のタイムスタンプ（高精度）
+- `bid`, `ask`, `last`, `volume`: 価格・出来高情報
+- `flags`: ティック変更フラグ
 
 ## 構成
 - `mt5_bridge/main.py`: CLIエントリポイントおよびFastAPIサーバー定義。
