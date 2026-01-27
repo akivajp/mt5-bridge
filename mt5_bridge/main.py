@@ -73,7 +73,8 @@ class BookItem(BaseModel):
     type: str              # BUY, SELL, BUY_LIMIT, SELL_LIMIT, OTHER
     price: float
     volume: float
-    volume_real: float
+    #volume_real: float
+    volume_dbl: float
 
 class Account(BaseModel):
     login: int
