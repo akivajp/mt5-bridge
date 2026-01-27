@@ -108,6 +108,17 @@ class BridgeClient:
         except httpx.HTTPError as e:
             print(f"Error fetching tick: {e}")
             return None
+
+    def get_book(self, symbol: str) -> List[Dict[str, Any]]:
+        """Get current market depth (Level 2)."""
+        url = f"{self.base_url}/book/{symbol}"
+        try:
+            resp = httpx.get(url, timeout=5.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching market book: {e}")
+            return []
     
     def get_account_info(self) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url}/account"

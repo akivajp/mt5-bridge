@@ -720,3 +720,42 @@ class MT5Handler:
 
         logger.info(f"Protection updated for ticket {ticket}")
         return True, "Success"
+
+    def get_market_book(self, symbol: str) -> Optional[List[Dict]]:
+        """
+        Get market depth (Level 2) data for a symbol.
+        Automatically handles subscription.
+        """
+        if not self.connected:
+            if not self.initialize():
+                return None
+
+        # Ensure symbol is selected
+        if not mt5.symbol_select(symbol, True):
+            logger.error(f"Failed to select symbol {symbol}")
+            return None
+
+        # Subscribe to market book (must be done to use MarketBookGet)
+        if not mt5.market_book_add(symbol):
+            logger.error(f"Failed to subscribe to market book for {symbol}: {mt5.last_error()}")
+            return None
+
+        # Retrieve the book
+        items = mt5.market_book_get(symbol)
+        if items is None:
+            # Note: Sometimes it returns None if the book is not yet populated
+            return []
+
+        result = []
+        for item in items:
+            result.append({
+                "type": "BUY" if item.type == mt5.BOOK_TYPE_BUY else 
+                        "SELL" if item.type == mt5.BOOK_TYPE_SELL else 
+                        "BUY_LIMIT" if item.type == mt5.BOOK_TYPE_BUY_LIMIT else
+                        "SELL_LIMIT" if item.type == mt5.BOOK_TYPE_SELL_LIMIT else "OTHER",
+                "price": float(item.price),
+                "volume": float(item.volume),
+                "volume_real": float(item.volume_real)
+            })
+        
+        return result

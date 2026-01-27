@@ -68,6 +68,13 @@ class HistoricalTick(BaseModel):
     volume: int
     flags: int             # ティック変更フラグ (Bid/Ask/Last/Volumeの変更種別)
 
+class BookItem(BaseModel):
+    """板情報のアイテムモデル"""
+    type: str              # BUY, SELL, BUY_LIMIT, SELL_LIMIT, OTHER
+    price: float
+    volume: float
+    volume_real: float
+
 class Account(BaseModel):
     login: int
     balance: float
@@ -163,6 +170,13 @@ def get_tick(symbol: str):
     if tick is None:
         raise HTTPException(status_code=500, detail=f"Failed to get tick for {symbol}")
     return tick
+
+@app.get("/book/{symbol}", response_model=List[BookItem])
+def get_book(symbol: str):
+    book = mt5_handler.get_market_book(symbol)
+    if book is None:
+        raise HTTPException(status_code=500, detail=f"Failed to get market book for {symbol}")
+    return book
 
 @app.get("/ticks_from/{symbol}", response_model=List[HistoricalTick])
 def get_ticks_from(
