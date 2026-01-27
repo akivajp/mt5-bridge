@@ -406,6 +406,10 @@ def main():
     ticks_range_p.add_argument("--flags", type=str, default="ALL", choices=["ALL", "INFO", "TRADE"],
                                 help="Tick type: ALL, INFO (bid/ask), TRADE (last/volume)")
 
+    # Market Book (Level 2) command
+    book_p = client_subs.add_parser("book", help="Get current market depth (Level 2)")
+    book_p.add_argument("symbol", type=str)
+
     args = parser.parse_args()
 
     if args.command == "server":
@@ -485,6 +489,8 @@ def main():
             except Exception as e:
                 print(f"Error: {e}")
                 sys.exit(1)
+        elif args.client_command == "book":
+            print(json.dumps(client.get_book(args.symbol), indent=2))
     else:
         parser.print_help()
 

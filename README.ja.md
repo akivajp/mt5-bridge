@@ -59,6 +59,9 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
 # 最新ティックの取得
 uv run mt5-bridge client --url http://192.168.1.10:8000 tick XAUUSD
 
+# 板情報 (Level 2) の取得
+uv run mt5-bridge client --url http://192.168.1.10:8000 book XAUUSD
+
 # 口座情報の取得
 uv run mt5-bridge client --url http://192.168.1.10:8000 account
 
@@ -92,6 +95,7 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 200
 - `GET /rates/{symbol}?timeframe=M1&count=1000`
 - `GET /rates_range/{symbol}?timeframe=M1&start=2025-01-01&end=2025-01-02`
 - `GET /tick/{symbol}`
+- `GET /book/{symbol}` (**v1.6.0~**)
 - `GET /ticks_from/{symbol}?start=2025-01-01&count=1000&flags=ALL` (**v1.5.0~**)
 - `GET /ticks_range/{symbol}?start=2025-01-01&end=2025-01-02&flags=ALL` (**v1.5.0~**)
 - `GET /account`
