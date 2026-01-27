@@ -755,7 +755,8 @@ class MT5Handler:
                         "SELL_LIMIT" if item.type == mt5.BOOK_TYPE_SELL_LIMIT else "OTHER",
                 "price": float(item.price),
                 "volume": float(item.volume),
-                "volume_real": float(item.volume_real)
+                #"volume_real": float(item.volume_real)
+                "volume_dbl": float(item.volume_dbl)
             })
         
         return result
