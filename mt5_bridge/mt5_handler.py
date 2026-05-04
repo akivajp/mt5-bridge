@@ -762,3 +762,13 @@ class MT5Handler:
             })
         
         return result
+
+    def get_symbols(self) -> List[str]:
+        """Get list of all available symbols in the terminal."""
+        if not self.connected:
+            self.initialize()
+        
+        symbols = mt5.symbols_get()
+        if symbols is None:
+            return []
+        return [s.name for s in symbols]

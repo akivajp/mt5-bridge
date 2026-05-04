@@ -136,6 +136,10 @@ async def shutdown_event():
 def health_check():
     return {"status": "ok", "mt5_connected": mt5_handler.connected}
 
+@app.get("/symbols", response_model=List[str])
+def get_symbols():
+    return mt5_handler.get_symbols()
+
 @app.get("/rates/{symbol}", response_model=List[Rate])
 def get_rates(
     symbol: str, 
