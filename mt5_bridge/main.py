@@ -357,6 +357,8 @@ def main():
     # Client Subcommands
     client_subs.add_parser("health", help="Check server health")
     
+    client_subs.add_parser("symbols", help="List all available symbols")
+    
     rates_p = client_subs.add_parser("rates", help="Get historical rates")
     rates_p.add_argument("symbol", type=str)
     rates_p.add_argument("--timeframe", default="M1")
@@ -448,6 +450,8 @@ def main():
         client = BridgeClient(base_url=args.url)
         if args.client_command == "health":
             print(json.dumps(client.check_health(), indent=2))
+        elif args.client_command == "symbols":
+            print(json.dumps(client.get_symbols(), indent=2))
         elif args.client_command == "rates":
             print(json.dumps(client.get_rates(args.symbol, args.timeframe, args.count), indent=2))
         elif args.client_command == "rates_range":

@@ -146,6 +146,17 @@ class BridgeClient:
             print(f"Error fetching positions: {e}")
             return []
     
+    def get_symbols(self) -> List[str]:
+        """Get list of all available symbols."""
+        url = f"{self.base_url}/symbols"
+        try:
+            resp = httpx.get(url, timeout=5.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching symbols: {e}")
+            return []
+    
     def check_health(self) -> Dict[str, Any]:
         url = f"{self.base_url}/health"
         try:

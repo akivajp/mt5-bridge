@@ -53,6 +53,9 @@ uv run mt5-bridge server --host 0.0.0.0 --port 8000
 # サーバーのヘルスチェック
 uv run mt5-bridge client --url http://192.168.1.10:8000 health
 
+# 利用可能なシンボル一覧の取得
+uv run mt5-bridge client --url http://192.168.1.10:8000 symbols
+
 # 過去レートの取得 (M1, 最新1000本) - シンボル: XAUUSD
 uv run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
 
@@ -92,6 +95,7 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 200
 汎用的なHTTPクライアントやライブラリから直接APIを利用することも可能です。
 
 - `GET /health`
+- `GET /symbols` (**v1.7.2~**)
 - `GET /rates/{symbol}?timeframe=M1&count=1000`
 - `GET /rates_range/{symbol}?timeframe=M1&start=2025-01-01&end=2025-01-02`
 - `GET /tick/{symbol}`
