@@ -330,7 +330,7 @@ class MT5Handler:
             self._update_server_offset(symbol)
         
         offset = self._server_offset_sec or 0
-        server_from = datetime.fromtimestamp(date_from.timestamp() + offset, tz=timezone.utc)
+        server_from = datetime.fromtimestamp(date_from.timestamp() + offset)
         
         ticks = mt5.copy_ticks_from(symbol, server_from, count, mt5_flags)
         
@@ -393,8 +393,8 @@ class MT5Handler:
             self._update_server_offset(symbol)
         
         offset = self._server_offset_sec or 0
-        server_from = datetime.fromtimestamp(date_from.timestamp() + offset, tz=timezone.utc)
-        server_to = datetime.fromtimestamp(date_to.timestamp() + offset, tz=timezone.utc)
+        server_from = datetime.fromtimestamp(date_from.timestamp() + offset)
+        server_to = datetime.fromtimestamp(date_to.timestamp() + offset)
         
         ticks = mt5.copy_ticks_range(symbol, server_from, server_to, mt5_flags)
         
