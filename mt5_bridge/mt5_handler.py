@@ -500,6 +500,72 @@ class MT5Handler:
             
         return result
 
+    def get_history_deals(
+        self,
+        position: Optional[int] = None,
+        ticket: Optional[int] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> Optional[List[Dict]]:
+        """
+        Get historical deals (completed transactions) with filters.
+        """
+        if not self.connected:
+            if not self.initialize():
+                return None
+
+        # Determine timezone offset
+        if self.use_utc and self._server_offset_sec is None:
+            symbols = mt5.symbols_get()
+            if symbols and len(symbols) > 0:
+                self._update_server_offset(symbols[0].name)
+            else:
+                self._update_server_offset("XAUUSDz")
+
+        if position is not None:
+            deals = mt5.history_deals_get(position=position)
+        elif ticket is not None:
+            deals = mt5.history_deals_get(ticket=ticket)
+        elif date_from is not None and date_to is not None:
+            offset = self._server_offset_sec or 0
+            server_from = datetime.fromtimestamp(date_from.timestamp() + offset, tz=timezone.utc)
+            server_to = datetime.fromtimestamp(date_to.timestamp() + offset, tz=timezone.utc)
+            deals = mt5.history_deals_get(server_from, server_to)
+        else:
+            # Default to last 24 hours
+            import datetime as dt
+            offset = self._server_offset_sec or 0
+            now_ts = datetime.now(timezone.utc).timestamp()
+            server_from = datetime.fromtimestamp(now_ts - 86400 + offset, tz=timezone.utc)
+            server_to = datetime.fromtimestamp(now_ts + offset, tz=timezone.utc)
+            deals = mt5.history_deals_get(server_from, server_to)
+
+        if deals is None:
+            logger.error(f"Failed to get history deals: {mt5.last_error()}")
+            return None
+
+        result = []
+        for deal in deals:
+            result.append({
+                "ticket": int(deal.ticket),
+                "order": int(deal.order),
+                "time": self._apply_time_correction(int(deal.time)),
+                "time_msc": int(deal.time_msc),
+                "type": "BUY" if deal.type == 0 else "SELL" if deal.type == 1 else str(deal.type),
+                "entry": "IN" if deal.entry == 0 else "OUT" if deal.entry == 1 else "INOUT" if deal.entry == 2 else str(deal.entry),
+                "position_id": int(deal.position_id),
+                "volume": float(deal.volume),
+                "price": float(deal.price),
+                "commission": float(deal.commission),
+                "swap": float(deal.swap),
+                "profit": float(deal.profit),
+                "comment": str(getattr(deal, "comment", "")),
+                "magic": int(deal.magic),
+                "symbol": str(deal.symbol)
+            })
+
+        return result
+
     def send_order(
         self,
         symbol: str,

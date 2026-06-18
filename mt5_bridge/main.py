@@ -103,6 +103,23 @@ class Position(BaseModel):
     time: int
     time_msc: int
 
+class Deal(BaseModel):
+    ticket: int
+    order: int
+    time: int
+    time_msc: int
+    type: str
+    entry: str
+    position_id: int
+    volume: float
+    price: float
+    commission: float
+    swap: float
+    profit: float
+    comment: str
+    magic: int
+    symbol: str
+
 async def monitor_connection():
     """Periodically check MT5 connection and reconnect if needed."""
     while True:
@@ -257,6 +274,32 @@ def get_positions(
     if positions is None:
         raise HTTPException(status_code=500, detail="Failed to get positions")
     return positions
+
+@app.get("/history/deals", response_model=List[Deal])
+def get_history_deals(
+    position: Optional[int] = Query(None, description="Position ID to filter deals by"),
+    ticket: Optional[int] = Query(None, description="Deal ticket to filter by"),
+    start: Optional[str] = Query(None, description="Start timestamp or datetime string (UTC)"),
+    end: Optional[str] = Query(None, description="End timestamp or datetime string (UTC)"),
+):
+    try:
+        date_from = parse_datetime(start) if start else None
+        date_to = parse_datetime(end) if end else None
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+
+    dt_from = datetime.fromtimestamp(date_from, tz=timezone.utc) if date_from else None
+    dt_to = datetime.fromtimestamp(date_to, tz=timezone.utc) if date_to else None
+
+    deals = mt5_handler.get_history_deals(
+        position=position,
+        ticket=ticket,
+        date_from=dt_from,
+        date_to=dt_to
+    )
+    if deals is None:
+        raise HTTPException(status_code=500, detail="Failed to get historical deals")
+    return deals
 
 class OrderRequest(BaseModel):
     symbol: str
