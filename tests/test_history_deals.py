@@ -66,3 +66,37 @@ def test_client_get_history_deals(mock_get: MagicMock) -> None:
     assert result[0]["ticket"] == 12345
     assert result[0]["symbol"] == "XAUUSD"
     assert result[0]["profit"] == 10.0
+
+
+@patch("httpx.get")
+def test_client_get_version(mock_get: MagicMock) -> None:
+    """BridgeClient.get_version が正しく HTTP GET リクエストを送信し、結果を取得できるかテストします。"""
+    # レスポンスのモック設定
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"version": "1.8.1"}
+    mock_get.return_value = mock_resp
+
+    # クライアントの初期化と実行
+    client = BridgeClient("http://localhost:8000")
+    result = client.get_version()
+
+    # 正しいURLでGETリクエストが送信されたことを検証
+    mock_get.assert_called_once_with(
+        "http://localhost:8000/version",
+        timeout=5.0
+    )
+    assert result == {"version": "1.8.1"}
+
+
+def test_api_version() -> None:
+    """FastAPI サーバーの /version エンドポイントが正しく機能するかテストします。"""
+    from fastapi.testclient import TestClient
+    from mt5_bridge.main import app
+
+    client = TestClient(app)
+    response = client.get("/version")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "version" in data
+    assert data["version"] == "1.8.1" or data["version"] == "unknown"

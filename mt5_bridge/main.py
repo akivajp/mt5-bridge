@@ -153,6 +153,14 @@ async def shutdown_event():
 def health_check():
     return {"status": "ok", "mt5_connected": mt5_handler.connected}
 
+@app.get("/version")
+def get_version():
+    """現在稼働中の mt5-bridge パッケージのバージョンを取得します。"""
+    try:
+        return {"version": version("mt5-bridge")}
+    except PackageNotFoundError:
+        return {"version": "unknown"}
+
 @app.get("/symbols", response_model=List[str])
 def get_symbols():
     return mt5_handler.get_symbols()
@@ -400,6 +408,8 @@ def main():
     # Client Subcommands
     client_subs.add_parser("health", help="Check server health")
     
+    client_subs.add_parser("version", help="Get server version")
+    
     client_subs.add_parser("symbols", help="List all available symbols")
     
     rates_p = client_subs.add_parser("rates", help="Get historical rates")
@@ -500,6 +510,8 @@ def main():
         client = BridgeClient(base_url=args.url)
         if args.client_command == "health":
             print(json.dumps(client.check_health(), indent=2))
+        elif args.client_command == "version":
+            print(json.dumps(client.get_version(), indent=2))
         elif args.client_command == "symbols":
             print(json.dumps(client.get_symbols(), indent=2))
         elif args.client_command == "rates":

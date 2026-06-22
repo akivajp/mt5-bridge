@@ -65,6 +65,9 @@ From another machine (or the same one), use the client command to interact with 
 # Check connection health
 uv run mt5-bridge client --url http://192.168.1.10:8000 health
 
+# Get server version
+uv run mt5-bridge client --url http://192.168.1.10:8000 version
+
 # Get historical rates (M1, last 1000 bars) for XAUUSD
 uv run mt5-bridge client --url http://192.168.1.10:8000 rates XAUUSD
 
@@ -107,6 +110,7 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 200
 You can also access the API directly via generic HTTP clients (curl, Postman, specific libraries).
 
 - `GET /health`
+- `GET /version` (**v1.8.1+**)
 - `GET /rates/{symbol}?timeframe=M1&count=1000`
 - `GET /rates_range/{symbol}?timeframe=M1&start=2026-01-01&end=2026-01-15`
 - `GET /tick/{symbol}`
