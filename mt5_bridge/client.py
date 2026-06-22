@@ -209,3 +209,41 @@ class BridgeClient:
             return resp.json()
         except httpx.HTTPError as e:
             return {"status": "error", "detail": str(e)}
+
+    def get_history_deals(
+        self,
+        position: Optional[int] = None,
+        ticket: Optional[int] = None,
+        start: Optional[int] = None,
+        end: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        取引履歴（約定履歴）を取得する。
+
+        Args:
+            position: ポジションIDによるフィルタ
+            ticket: ディール（取引）チケット番号によるフィルタ
+            start: 開始タイムスタンプ (UTC)
+            end: 終了タイムスタンプ (UTC)
+
+        Returns:
+            約定データの辞書リスト
+        """
+        url = f"{self.base_url}/history/deals"
+        params = {}
+        if position is not None:
+            params["position"] = position
+        if ticket is not None:
+            params["ticket"] = ticket
+        if start is not None:
+            params["start"] = start
+        if end is not None:
+            params["end"] = end
+
+        try:
+            resp = httpx.get(url, params=params, timeout=30.0)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as e:
+            print(f"Error fetching history deals: {e}")
+            return []

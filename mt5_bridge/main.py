@@ -462,6 +462,13 @@ def main():
     book_p = client_subs.add_parser("book", help="Get current market depth (Level 2)")
     book_p.add_argument("symbol", type=str)
 
+    # History deals command
+    history_deals_p = client_subs.add_parser("history_deals", help="Get historical deals (completed transactions)")
+    history_deals_p.add_argument("--position", type=int, help="Filter by Position ID")
+    history_deals_p.add_argument("--ticket", type=int, help="Filter by Deal Ticket ID")
+    history_deals_p.add_argument("--start", type=str, help="Start timestamp or datetime string (UTC)")
+    history_deals_p.add_argument("--end", type=str, help="End timestamp or datetime string (UTC)")
+
     args = parser.parse_args()
 
     if args.command == "server":
@@ -545,6 +552,19 @@ def main():
                 sys.exit(1)
         elif args.client_command == "book":
             print(json.dumps(client.get_book(args.symbol), indent=2))
+        elif args.client_command == "history_deals":
+            try:
+                start_ts = parse_datetime(args.start) if args.start else None
+                end_ts = parse_datetime(args.end) if args.end else None
+                print(json.dumps(client.get_history_deals(
+                    position=args.position,
+                    ticket=args.ticket,
+                    start=start_ts,
+                    end=end_ts
+                ), indent=2))
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
     else:
         parser.print_help()
 

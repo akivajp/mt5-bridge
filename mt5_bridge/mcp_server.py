@@ -101,6 +101,26 @@ def modify_position(
     return _request("POST", "/modify", json=payload)
 
 
+@mcp.tool()
+def get_history_deals(
+    position: Optional[int] = None,
+    ticket: Optional[int] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Fetch historical deals (completed transactions) / 取引履歴（約定履歴）を取得"""
+    params = {}
+    if position is not None:
+        params["position"] = position
+    if ticket is not None:
+        params["ticket"] = ticket
+    if start is not None:
+        params["start"] = start
+    if end is not None:
+        params["end"] = end
+    return _request("GET", "/history/deals", params=params)
+
+
 
 if __name__ == "__main__":
     import argparse

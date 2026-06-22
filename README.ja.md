@@ -71,6 +71,9 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 account
 # 保有ポジションの一覧表示 (オプション: --symbols XAUUSD,BTCUSD --magic 123456)
 uv run mt5-bridge client --url http://192.168.1.10:8000 positions
 
+# 取引履歴（約定履歴）の取得 (オプション: --position 123456 --ticket 789012 --start 2025-01-01 --end 2025-01-02)
+uv run mt5-bridge client --url http://192.168.1.10:8000 history_deals
+
 # 指定期間のレート取得 (タイムスタンプまたは日時文字列)
 uv run mt5-bridge client --url http://192.168.1.10:8000 rates_range XAUUSD --timeframe M1 --start 2025-01-01 --end 2025-01-02
 
@@ -104,6 +107,7 @@ uv run mt5-bridge client --url http://192.168.1.10:8000 modify 12345678 --sl 200
 - `GET /ticks_range/{symbol}?start=2025-01-01&end=2025-01-02&flags=ALL` (**v1.5.0~**)
 - `GET /account`
 - `GET /positions?symbols=XAUUSD,BTCUSD&magic=123456` (**v1.7.0~** で `time_msc` を追加)
+- `GET /history/deals?position=123456&ticket=789012&start=2025-01-01&end=2025-01-02` (**v1.8.0~**)
 - `POST /order`
 - `POST /close`
 - `POST /modify`

@@ -1,6 +1,6 @@
 [project]
 name = "mt5-bridge"
-version = "1.7.3"
+version = "1.8.0"
 description = "MT5 Bridge API - REST API and CLI for MetaTrader5"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,3 +25,6 @@ mt5-bridge = "mt5_bridge.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
