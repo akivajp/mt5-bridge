@@ -73,7 +73,7 @@ def test_client_get_version(mock_get: MagicMock) -> None:
     """BridgeClient.get_version が正しく HTTP GET リクエストを送信し、結果を取得できるかテストします。"""
     # レスポンスのモック設定
     mock_resp = MagicMock()
-    mock_resp.json.return_value = {"version": "1.8.1"}
+    mock_resp.json.return_value = {"version": "1.8.2"}
     mock_get.return_value = mock_resp
 
     # クライアントの初期化と実行
@@ -85,7 +85,7 @@ def test_client_get_version(mock_get: MagicMock) -> None:
         "http://localhost:8000/version",
         timeout=5.0
     )
-    assert result == {"version": "1.8.1"}
+    assert result == {"version": "1.8.2"}
 
 
 def test_api_version() -> None:
@@ -99,4 +99,20 @@ def test_api_version() -> None:
     assert response.status_code == 200
     data = response.json()
     assert "version" in data
-    assert data["version"] == "1.8.1" or data["version"] == "unknown"
+    assert data["version"] == "1.8.2" or data["version"] == "unknown"
+
+
+def test_api_health() -> None:
+    """FastAPI サーバーの /health エンドポイントがバージョン情報を含むかテストします。"""
+    from fastapi.testclient import TestClient
+    from mt5_bridge.main import app
+
+    client = TestClient(app)
+    response = client.get("/health")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+    assert data["status"] == "ok"
+    assert "version" in data
+    assert data["version"] == "1.8.2" or data["version"] == "unknown"

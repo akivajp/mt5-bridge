@@ -151,7 +151,15 @@ async def shutdown_event():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "mt5_connected": mt5_handler.connected}
+    try:
+        app_version = version("mt5-bridge")
+    except PackageNotFoundError:
+        app_version = "unknown"
+    return {
+        "status": "ok", 
+        "mt5_connected": mt5_handler.connected,
+        "version": app_version
+    }
 
 @app.get("/version")
 def get_version():
