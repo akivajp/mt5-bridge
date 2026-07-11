@@ -73,7 +73,7 @@ def test_client_get_version(mock_get: MagicMock) -> None:
     """BridgeClient.get_version が正しく HTTP GET リクエストを送信し、結果を取得できるかテストします。"""
     # レスポンスのモック設定
     mock_resp = MagicMock()
-    mock_resp.json.return_value = {"version": "1.8.2"}
+    mock_resp.json.return_value = {"version": "1.8.3"}
     mock_get.return_value = mock_resp
 
     # クライアントの初期化と実行
@@ -85,7 +85,7 @@ def test_client_get_version(mock_get: MagicMock) -> None:
         "http://localhost:8000/version",
         timeout=5.0
     )
-    assert result == {"version": "1.8.2"}
+    assert result == {"version": "1.8.3"}
 
 
 def test_api_version() -> None:
@@ -99,7 +99,7 @@ def test_api_version() -> None:
     assert response.status_code == 200
     data = response.json()
     assert "version" in data
-    assert data["version"] == "1.8.2" or data["version"] == "unknown"
+    assert data["version"] == "1.8.3" or data["version"] == "unknown"
 
 
 def test_api_health() -> None:
@@ -115,4 +115,35 @@ def test_api_health() -> None:
     assert "status" in data
     assert data["status"] == "ok"
     assert "version" in data
-    assert data["version"] == "1.8.2" or data["version"] == "unknown"
+    assert data["version"] == "1.8.3" or data["version"] == "unknown"
+
+
+@patch("httpx.get")
+def test_client_get_tick_url_encode(mock_get: MagicMock) -> None:
+    """特殊文字（# や /）を含むシンボル名で呼び出した際、正しくURLエンコードされるかを検証します。"""
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {
+        "time": 1704067200,
+        "time_msc": 1704067200000,
+        "bid": 2000.0,
+        "ask": 2000.5,
+        "last": 2000.0,
+        "volume": 1
+    }
+    mock_get.return_value = mock_resp
+
+    client = BridgeClient("http://localhost:8000")
+    
+    # スラッシュ (/) と シャープ (#) を含むシンボル名
+    symbol_with_special = "XAU/USD#test"
+    result = client.get_tick(symbol_with_special)
+
+    # 期待されるエンコードされた URL
+    # "XAU/USD#test" -> "XAU%2FUSD%23test"
+    expected_encoded_symbol = "XAU%2FUSD%23test"
+    mock_get.assert_called_once_with(
+        f"http://localhost:8000/tick/{expected_encoded_symbol}",
+        timeout=5.0
+    )
+    assert result is not None
+    assert result["bid"] == 2000.0
