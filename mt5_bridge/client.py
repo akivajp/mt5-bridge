@@ -1,3 +1,4 @@
+import urllib.parse
 import httpx
 from typing import List, Dict, Optional, Any
 
@@ -6,7 +7,7 @@ class BridgeClient:
         self.base_url = base_url.rstrip("/")
 
     def get_rates(self, symbol: str, timeframe: str = "M1", count: int = 1000) -> List[Dict[str, Any]]:
-        url = f"{self.base_url}/rates/{symbol}"
+        url = f"{self.base_url}/rates/{urllib.parse.quote(symbol, safe='')}"
         params = {"timeframe": timeframe, "count": count}
         try:
             resp = httpx.get(url, params=params, timeout=10.0)
@@ -29,7 +30,7 @@ class BridgeClient:
         Returns:
             レートデータの辞書リスト
         """
-        url = f"{self.base_url}/rates_range/{symbol}"
+        url = f"{self.base_url}/rates_range/{urllib.parse.quote(symbol, safe='')}"
         params = {"timeframe": timeframe, "start": start, "end": end}
         try:
             resp = httpx.get(url, params=params, timeout=30.0)
@@ -58,7 +59,7 @@ class BridgeClient:
         Returns:
             ティックデータの辞書リスト
         """
-        url = f"{self.base_url}/ticks_from/{symbol}"
+        url = f"{self.base_url}/ticks_from/{urllib.parse.quote(symbol, safe='')}"
         params = {"start": start, "count": count, "flags": flags}
         try:
             # ティックデータは量が多い可能性があるためタイムアウトを長めに設定
@@ -88,7 +89,7 @@ class BridgeClient:
         Returns:
             ティックデータの辞書リスト
         """
-        url = f"{self.base_url}/ticks_range/{symbol}"
+        url = f"{self.base_url}/ticks_range/{urllib.parse.quote(symbol, safe='')}"
         params = {"start": start, "end": end, "flags": flags}
         try:
             # ティックデータは量が多い可能性があるためタイムアウトを長めに設定
@@ -100,7 +101,7 @@ class BridgeClient:
             return []
 
     def get_tick(self, symbol: str) -> Optional[Dict[str, Any]]:
-        url = f"{self.base_url}/tick/{symbol}"
+        url = f"{self.base_url}/tick/{urllib.parse.quote(symbol, safe='')}"
         try:
             resp = httpx.get(url, timeout=5.0)
             resp.raise_for_status()
@@ -111,7 +112,7 @@ class BridgeClient:
 
     def get_book(self, symbol: str) -> List[Dict[str, Any]]:
         """Get current market depth (Level 2)."""
-        url = f"{self.base_url}/book/{symbol}"
+        url = f"{self.base_url}/book/{urllib.parse.quote(symbol, safe='')}"
         try:
             resp = httpx.get(url, timeout=5.0)
             resp.raise_for_status()
