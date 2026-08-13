@@ -16,7 +16,7 @@ else:
     mt5 = None
 
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 from typing import Optional, Dict, List, Union
 
@@ -29,7 +29,8 @@ class MT5Handler:
         login: Optional[int] = None,
         password: Optional[str] = None,
         server: Optional[str] = None,
-        use_utc: bool = True
+        use_utc: bool = True,
+        offset_ttl_hours: float = 6.0
     ):
         self.connected = False
         self.program_path = program_path
@@ -38,6 +39,10 @@ class MT5Handler:
         self.server = server
         self.use_utc = use_utc
         self._server_offset_sec: Optional[int] = None
+        # offsetキャッシュのTTL管理(長期間起動で古いoffsetが使われ続け、
+        # 夏時間切り替えやMT5端末再接続後のサーバー時刻変動に追従できなくなる問題の対策)
+        self._offset_updated_at: Optional[datetime] = None
+        self._offset_ttl_sec: float = offset_ttl_hours * 3600.0
 
     def initialize(self) -> bool:
         """
@@ -101,8 +106,11 @@ class MT5Handler:
         Estimate server timezone offset relative to UTC using the given symbol's tick time.
         Offset = ServerTime - UTC.
         """
-        if self._server_offset_sec is not None:
-            return
+        if self._server_offset_sec is not None and self._offset_updated_at is not None:
+            # TTL内ならキャッシュ使用。TTL超過で再計算(古いoffsetの永続キャッシュ問題を回避)。
+            if datetime.now(timezone.utc) - self._offset_updated_at < timedelta(seconds=self._offset_ttl_sec):
+                return
+            logger.info("Server timezone offset cache expired (TTL=%ds), recalculating...", int(self._offset_ttl_sec))
 
         # Ensure symbol is selected to get fresh tick
         if not mt5.symbol_select(symbol, True):
@@ -130,6 +138,7 @@ class MT5Handler:
         # Round to nearest 15 minutes (900s) to handle latency and candle close lag
         rounded_diff = round(diff / 900) * 900
         self._server_offset_sec = int(rounded_diff)
+        self._offset_updated_at = datetime.now(timezone.utc)
         logger.info(f"Server timezone offset estimated: {self._server_offset_sec}s (using {symbol}, raw_diff={diff:.1f}s)")
 
     def _apply_time_correction(self, ts: int) -> int:
